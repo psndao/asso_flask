@@ -1352,3 +1352,16 @@ def init_db():
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
+
+# ─────────────────────────────────────────────
+# INIT AU DÉMARRAGE — PRODUCTION
+# ─────────────────────────────────────────────
+
+_db_initialized = False
+
+@app.before_request
+def ensure_db():
+    global _db_initialized
+    if not _db_initialized:
+        init_db()
+        _db_initialized = True
