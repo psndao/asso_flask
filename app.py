@@ -13,7 +13,8 @@ import stripe, os, uuid
 # ─────────────────────────────────────────────
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "AKF@Koungheul#2026!Limoges$Solidarite"
+app.config["SECRET_KEY"] = "akf-super-secret-key-2026"
+
 # ─────────────────────────────────────────────
 # STRIPE
 # ─────────────────────────────────────────────
@@ -1272,10 +1273,71 @@ def init_db():
             db.session.commit()
             print("✅ Actualités initialisées")
 
+        # Import adhérents depuis Excel (si base vide)
+        if Adhesion.query.count() == 0:
+            try:
+                import pandas as pd, unicodedata, re
 
-# Init automatique au démarrage
-with app.app_context():
-    init_db()
+                FICHIER_EXCEL = "Formulaire_sans_titdatare__réponses___1_.xlsx"
+
+                if os.path.exists(FICHIER_EXCEL):
+                    df = pd.read_excel(FICHIER_EXCEL)
+                    importes = 0
+
+                    for _, row in df.iterrows():
+                        nom_complet = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ""
+                        ville       = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ""
+                        telephone   = str(row.iloc[3]).strip() if pd.notna(row.iloc[3]) else ""
+                        email       = str(row.iloc[4]).strip() if pd.notna(row.iloc[4]) else ""
+                        sexe        = str(row.iloc[6]).strip() if pd.notna(row.iloc[6]) else ""
+                        motivation  = str(row.iloc[8]).strip() if pd.notna(row.iloc[8]) else ""
+
+                        if not email or email == "nan":
+                            continue
+
+                        if Adhesion.query.filter_by(email=email).first():
+                            continue
+
+                        # Séparer prénom / nom
+                        parts = nom_complet.split()
+                        if len(parts) >= 2:
+                            prenom = parts[0]
+                            nom    = " ".join(parts[1:])
+                        else:
+                            prenom = nom_complet
+                            nom    = ""
+
+                        # Nettoyer le téléphone
+                        try:
+                            if 'E' in telephone.upper():
+                                telephone = str(int(float(telephone)))
+                        except: pass
+
+                        civilite = "Mme" if "femme" in sexe.lower() or "féminin" in sexe.lower() else "M."
+
+                        db.session.add(Adhesion(
+                            civilite=civilite,
+                            prenom=prenom or nom_complet,
+                            nom=nom,
+                            email=email,
+                            telephone=telephone[:50],
+                            ville=ville,
+                            pays="France",
+                            type_adhesion="membre_actif",
+                            motivation=motivation[:2000] if motivation and motivation != "nan" else "",
+                            statut="actif",
+                        ))
+                        importes += 1
+
+                    db.session.commit()
+                    print(f"✅ {importes} adhérents importés depuis Excel")
+                else:
+                    print("⚠️  Fichier Excel non trouvé — import adhérents ignoré")
+
+            except Exception as e:
+                print(f"⚠️  Erreur import adhérents : {e}")
+
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
