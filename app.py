@@ -25,7 +25,18 @@ stripe.api_key = "sk_test_51Tcme02YF5ue5EAIOSUxkRk5kPlVLYm0raGfb2OvN35tyJuxLNNZj
 # BASE DE DONNÉES
 # ─────────────────────────────────────────────
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///akf.db"
+import os
+
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "sqlite:///akf.db"  # fallback local
+)
+
+# Render fournit postgres:// mais SQLAlchemy veut postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
