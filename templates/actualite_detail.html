@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ actu.titre }} – Mon Association{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <span class="card-tag" style="background:rgba(255,255,255,.2);color:#fff">{{ actu.categorie }}</span>
+    <h1>{{ actu.titre }}</h1>
+    <p>{{ actu.date }}</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="form-card" style="max-width:800px">
+      <p style="color:var(--text-muted)">{{ actu.extrait }}</p>
+      <p style="color:var(--text-muted);margin-top:1rem">
+        Contenu complet de l'article à renseigner ici.
+      </p>
+      <div style="margin-top:2rem">
+        <a href="{{ url_for('actualites') }}" class="btn btn-outline">← Retour aux actualités</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

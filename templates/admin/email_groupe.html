@@ -1,0 +1,287 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Email groupé{% endblock %}
+{% block page_title %}Envoyer un email groupé{% endblock %}
+
+{% block content %}
+
+<div class="email-groupe-layout">
+
+  <!-- FORMULAIRE -->
+  <div class="table-card" style="flex:1.5">
+    <div class="table-card-header">
+      <h2><i class="fa-solid fa-paper-plane" style="color:var(--green);margin-right:.5rem"></i>Composer le message</h2>
+    </div>
+    <div style="padding:1.5rem">
+      <form method="POST" action="{{ url_for('admin_email_groupe') }}" enctype="multipart/form-data">
+
+        <!-- DESTINATAIRES -->
+        <div style="margin-bottom:1.5rem">
+          <label style="font-weight:700;display:block;margin-bottom:.75rem">
+            <i class="fa-solid fa-users" style="color:var(--green)"></i> Destinataires
+          </label>
+
+          <div class="filtre-grid">
+
+            <div class="filtre-card active" onclick="setFiltre(this,'tous')">
+              <input type="radio" name="filtre" value="tous" checked style="display:none">
+              <div class="filtre-icon" style="background:var(--green-light);color:var(--green)">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div>
+                <strong>Tous les membres actifs</strong>
+                <span>{{ total_actifs }} membres</span>
+              </div>
+            </div>
+
+            <div class="filtre-card" onclick="setFiltre(this,'type')">
+              <input type="radio" name="filtre" value="type" style="display:none">
+              <div class="filtre-icon" style="background:#eff6ff;color:#3b82f6">
+                <i class="fa-solid fa-id-badge"></i>
+              </div>
+              <div>
+                <strong>Par type d'adhésion</strong>
+                <span>Actif, Bienfaiteur…</span>
+              </div>
+            </div>
+
+            <div class="filtre-card" onclick="setFiltre(this,'ville')">
+              <input type="radio" name="filtre" value="ville" style="display:none">
+              <div class="filtre-icon" style="background:#fff7ed;color:#ea580c">
+                <i class="fa-solid fa-location-dot"></i>
+              </div>
+              <div>
+                <strong>Par ville</strong>
+                <span>Cibler une ville</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Filtre type -->
+          <div id="select-type" style="display:none;margin-top:.75rem">
+            <select name="type_filtre" style="width:100%;padding:.65rem 1rem;border:1px solid var(--border);border-radius:8px;font-family:inherit">
+              <option value="">-- Choisir un type --</option>
+              {% for t in types %}
+                <option value="{{ t }}">{{ t.replace('_',' ').title() }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Filtre ville -->
+          <div id="select-ville" style="display:none;margin-top:.75rem">
+            <select name="ville_filtre" style="width:100%;padding:.65rem 1rem;border:1px solid var(--border);border-radius:8px;font-family:inherit">
+              <option value="">-- Choisir une ville --</option>
+              {% for v in villes %}
+                <option value="{{ v }}">{{ v }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- SUJET -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-heading" style="color:var(--green)"></i> Sujet *</label>
+          <input type="text" name="sujet" placeholder="Ex: Convocation Assemblée Générale AKF 2026" required />
+        </div>
+
+        <!-- CORPS -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-align-left" style="color:var(--green)"></i> Message *</label>
+
+          <!-- Barre de formatage -->
+          <div class="format-bar">
+            <button type="button" onclick="inserer('**','**')" title="Gras"><i class="fa-solid fa-bold"></i></button>
+            <button type="button" onclick="inserer('_','_')" title="Italique"><i class="fa-solid fa-italic"></i></button>
+            <button type="button" onclick="insererLigne()" title="Séparateur"><i class="fa-solid fa-minus"></i></button>
+            <button type="button" onclick="insererPuce()" title="Liste à puces"><i class="fa-solid fa-list-ul"></i></button>
+          </div>
+
+          <textarea name="corps" id="corps" rows="10" required
+                    placeholder="Bonjour,&#10;&#10;Nous vous informons que...&#10;&#10;Cordialement,&#10;Le Bureau de l'AKF"
+                    style="border-radius:0 0 8px 8px;border-top:none"></textarea>
+        </div>
+
+        <!-- PIÈCE JOINTE -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Pièce jointe (facultatif)</label>
+          <div class="upload-zone" onclick="document.getElementById('piece_jointe').click()">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <p>Cliquez pour sélectionner un fichier</p>
+            <span id="nom-fichier" style="font-size:.8rem;color:var(--green)"></span>
+          </div>
+          <input type="file" id="piece_jointe" name="piece_jointe"
+                 style="display:none" onchange="afficherFichier(this)" />
+        </div>
+
+        <!-- APERÇU INFO -->
+        <div class="apercu-info" id="apercu-info">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>L'email sera personnalisé avec le prénom et nom de chaque destinataire.</span>
+        </div>
+
+        <button type="submit" class="btn btn-green" style="width:100%;justify-content:center;padding:.9rem;font-size:1rem">
+          <i class="fa-solid fa-paper-plane"></i>
+          Envoyer l'email groupé
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- PANNEAU DROIT : infos + historique -->
+  <div style="flex:.6;display:flex;flex-direction:column;gap:1.25rem">
+
+    <!-- Stats destinataires -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-chart-pie" style="color:var(--green);margin-right:.5rem"></i>Membres actifs</h2>
+      </div>
+      <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem">
+        <div class="dest-stat">
+          <span><i class="fa-solid fa-users" style="color:var(--green)"></i> Total actifs</span>
+          <strong>{{ total_actifs }}</strong>
+        </div>
+        {% for v in villes[:8] %}
+        <div class="dest-stat">
+          <span><i class="fa-solid fa-location-dot" style="color:#ea580c"></i> {{ v }}</span>
+          <strong>{{ adhesions_par_ville[v] if adhesions_par_ville is defined else '' }}</strong>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Conseils -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-lightbulb" style="color:#d97706;margin-right:.5rem"></i>Conseils</h2>
+      </div>
+      <div style="padding:1.25rem;font-size:.85rem;color:var(--text-muted);line-height:1.8">
+        <p>💡 Utilisez <strong>Bonjour [Prénom]</strong> — l'email sera automatiquement personnalisé.</p>
+        <p>📎 Formats acceptés pour la pièce jointe : PDF, Word, Excel, images.</p>
+        <p>⚠️ Vérifiez votre message avant envoi — il n'y a pas de confirmation.</p>
+        <p>📧 Les emails sont envoyés depuis : <strong>{{ asso.email }}</strong></p>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .email-groupe-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+
+  /* Filtres */
+  .filtre-grid { display: flex; flex-direction: column; gap: .6rem; }
+  .filtre-card {
+    display: flex; align-items: center; gap: 1rem;
+    border: 2px solid var(--border); border-radius: 10px;
+    padding: .85rem 1rem; cursor: pointer; transition: .15s; background: var(--bg);
+  }
+  .filtre-card.active { border-color: var(--green); background: var(--green-light); }
+  .filtre-icon {
+    width: 40px; height: 40px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+  .filtre-card div:last-child strong { display: block; font-size: .9rem; }
+  .filtre-card div:last-child span { font-size: .78rem; color: var(--text-muted); }
+
+  /* Éditeur WYSIWYG */
+  .format-bar {
+    display: flex; gap: .25rem; padding: .4rem .5rem;
+    background: var(--bg); border: 1px solid var(--border);
+    border-bottom: none; border-radius: 8px 8px 0 0;
+  }
+  .format-bar button {
+    width: 30px; height: 30px; border: none; background: none;
+    border-radius: 4px; cursor: pointer; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; transition: background .1s;
+  }
+  .format-bar button:hover { background: var(--border); }
+  .format-sep { width: 1px; background: var(--border); margin: 4px 2px; }
+
+  .editeur-wysiwyg {
+    min-height: 200px; border: 1px solid var(--border);
+    border-radius: 0 0 8px 8px; padding: .75rem 1rem;
+    font-family: var(--font-body); font-size: .95rem; line-height: 1.7;
+    outline: none; background: var(--bg);
+  }
+  .editeur-wysiwyg:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,122,74,.1); }
+  .editeur-wysiwyg:empty::before { content: attr(placeholder); color: #9ca3af; }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 8px;
+    padding: 1.25rem; text-align: center; cursor: pointer;
+    color: var(--text-muted); transition: .15s;
+  }
+  .upload-zone:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
+  .upload-zone i { font-size: 1.5rem; margin-bottom: .4rem; display: block; }
+  .upload-zone p { font-size: .85rem; margin: 0; }
+
+  /* Aperçu info */
+  .apercu-info {
+    display: flex; gap: .6rem; align-items: flex-start;
+    background: #eff6ff; border-radius: 8px; padding: .75rem 1rem;
+    font-size: .82rem; color: #1d4ed8; margin-bottom: 1rem;
+  }
+
+  /* Stats destinataires */
+  .dest-stat {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .85rem; padding: .3rem 0; border-bottom: 1px solid var(--border);
+  }
+  .dest-stat:last-child { border-bottom: none; }
+
+  @media (max-width: 900px) {
+    .email-groupe-layout { flex-direction: column; }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function setFiltre(div, val) {
+    document.querySelectorAll('.filtre-card').forEach(c => c.classList.remove('active'));
+    div.classList.add('active');
+    // Coche le radio caché dans la div
+    div.querySelector('input[type=radio]').checked = true;
+    document.getElementById('select-type').style.display  = val === 'type'  ? 'block' : 'none';
+    document.getElementById('select-ville').style.display = val === 'ville' ? 'block' : 'none';
+  }
+
+  function inserer(avant, apres) {
+    const ta    = document.getElementById('corps');
+    const start = ta.selectionStart;
+    const end   = ta.selectionEnd;
+    const sel   = ta.value.substring(start, end);
+    ta.value    = ta.value.substring(0, start) + avant + sel + apres + ta.value.substring(end);
+    ta.focus();
+    ta.selectionStart = start + avant.length;
+    ta.selectionEnd   = end   + avant.length;
+  }
+
+  function insererLigne() {
+    const ta  = document.getElementById('corps');
+    const pos = ta.selectionStart;
+    ta.value  = ta.value.substring(0, pos) + '\n---\n' + ta.value.substring(pos);
+    ta.focus();
+  }
+
+  function insererPuce() {
+    const ta  = document.getElementById('corps');
+    const pos = ta.selectionStart;
+    ta.value  = ta.value.substring(0, pos) + '\n• ' + ta.value.substring(pos);
+    ta.focus();
+  }
+
+  function afficherFichier(input) {
+    const nom = input.files[0] ? input.files[0].name : '';
+    document.getElementById('nom-fichier').textContent = nom ? '📎 ' + nom : '';
+  }
+</script>
+{% endblock %}

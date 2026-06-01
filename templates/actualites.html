@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Actualités – Mon Association{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <h1>Actualités</h1>
+    <p>Restez informés de nos dernières actions</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="cards-grid">
+      {% for a in actualites %}
+      <article class="card">
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="card-tag">{{ a.categorie }}</span>
+            <span class="card-date">{{ a.date }}</span>
+          </div>
+          <h3><a href="{{ url_for('actualite_detail', slug=a.slug) }}">{{ a.titre }}</a></h3>
+          <p>{{ a.extrait }}</p>
+          <a href="{{ url_for('actualite_detail', slug=a.slug) }}" class="card-link">Lire l'article →</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% endblock %}

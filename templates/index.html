@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Accueil – {{ asso.nom }}{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero" id="accueil">
+
+  <div class="hero-bg"></div>
+
+  <div class="container hero-inner">
+
+    <div class="hero-text">
+
+      <span class="hero-badge">ASSOCIATION SOLIDAIRE</span>
+
+      <h1 class="hero-title">
+        Association des<br>
+        <span class="accent">Koungheulois</span><br>
+        de France
+      </h1>
+
+      <p class="hero-sub">{{ asso.slogan }}</p>
+
+      <p class="hero-desc">{{ asso.description }}</p>
+
+      <div class="hero-cta">
+        <a href="{{ url_for('don') }}" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-heart"></i> Faire un don
+        </a>
+        <a href="{{ url_for('adhesion') }}" class="btn btn-outline btn-lg">
+          <i class="fa-solid fa-user-plus"></i> Adhérer
+        </a>
+      </div>
+
+      <div class="hero-badges-row">
+        <span class="badge-info">RNA {{ asso.rna }}</span>
+        <span class="badge-info">Déclarée {{ asso.declaration }}</span>
+        <span class="badge-info">ESS ✓</span>
+      </div>
+
+    </div>
+
+    <!-- IMAGE HERO -->
+    <div class="hero-slider">
+      <div class="slides">
+        <img src="{{ url_for('static', filename='img/koungheul.jpg') }}" class="slide active" alt="Koungheul">
+        <img src="{{ url_for('static', filename='img/reunion.jpg') }}" class="slide" alt="Réunion AKF">
+        <img src="{{ url_for('static', filename='img/projet.jpg') }}" class="slide" alt="Projet AKF">
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+<!-- STATS -->
+<section class="stats-bar">
+  <div class="container stats-grid">
+    {% for s in stats %}
+    <div class="stat-item">
+      <span class="stat-value">{{ s.value }}</span>
+      <span class="stat-label">{{ s.label }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- A PROPOS -->
+<section class="section" id="a-propos">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">QUI SOMMES-NOUS</span>
+      <h2>À propos de l'AKF</h2>
+    </div>
+    <div class="apropos-grid">
+      <div class="apropos-card">
+        <div class="apropos-icon"><i class="fa-solid fa-bullseye"></i></div>
+        <h3>Notre Mission</h3>
+        <p>Contribuer au développement socio-économique de Koungheul à travers des actions concrètes dans les domaines social, éducatif, sanitaire et économique.</p>
+      </div>
+      <div class="apropos-card">
+        <div class="apropos-icon"><i class="fa-solid fa-handshake"></i></div>
+        <h3>Notre Engagement</h3>
+        <p>Renforcer les liens entre les ressortissants de Koungheul établis en France et leur territoire d'origine, en favorisant solidarité et cohésion.</p>
+      </div>
+      <div class="apropos-card">
+        <div class="apropos-icon"><i class="fa-solid fa-gem"></i></div>
+        <h3>Nos Valeurs</h3>
+        <p>Solidarité, entraide, transparence et respect guident chacune de nos actions au service des communautés de Koungheul.</p>
+      </div>
+    </div>
+    <div class="text-center mt-2">
+      <a href="{{ url_for('presentation') }}" class="btn btn-outline">En savoir plus sur l'association</a>
+    </div>
+  </div>
+</section>
+
+<!-- PROJETS -->
+<section class="section" id="projets">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">NOS ACTIONS</span>
+      <h2>Projets & Initiatives</h2>
+    </div>
+    <div class="cards-grid">
+      {% for p in projets %}
+      <article class="card">
+        {% if p.image %}
+          <img src="{{ url_for('static', filename='uploads/' + p.image) }}" alt="{{ p.titre }}" class="card-img" />
+        {% else %}
+          <div class="card-img-placeholder"><i class="fa-solid fa-earth-africa"></i></div>
+        {% endif %}
+        <div class="card-body">
+          <span class="card-tag">{{ p.categorie }}</span>
+          <h3>{{ p.titre }}</h3>
+          <p>{{ p.description }}</p>
+          <a href="{{ url_for('projet_detail', slug=p.slug) }}" class="card-link">En savoir plus →</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="text-center mt-2">
+      <a href="{{ url_for('projets') }}" class="btn btn-outline">Voir tous nos projets</a>
+    </div>
+  </div>
+</section>
+
+<!-- ACTUALITES -->
+<section class="section section-light" id="actualites">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">ACTUALITÉS</span>
+      <h2>Dernières nouvelles</h2>
+    </div>
+    <div class="cards-grid">
+      {% for a in actualites %}
+      <article class="card">
+        {% if a.image %}
+          <img src="{{ url_for('static', filename='uploads/' + a.image) }}" alt="{{ a.titre }}" class="card-img" />
+        {% else %}
+          <div class="card-img-placeholder"><i class="fa-solid fa-newspaper"></i></div>
+        {% endif %}
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="card-tag">{{ a.categorie }}</span>
+            <span class="card-date">{{ a.date_creation.strftime('%d %b %Y') }}</span>
+          </div>
+          <h3>
+            <a href="{{ url_for('actualite_detail', slug=a.slug) }}">{{ a.titre }}</a>
+          </h3>
+          <p>{{ a.extrait }}</p>
+          <a href="{{ url_for('actualite_detail', slug=a.slug) }}" class="card-link">Lire →</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section cta-section" id="don">
+  <div class="container text-center">
+    <div class="cta-icon"><i class="fa-solid fa-heart"></i></div>
+    <h2>Soutenez Koungheul</h2>
+    <p>Chaque contribution, quelle que soit sa taille, améliore concrètement la vie des populations de Koungheul.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:2rem">
+      <a href="{{ url_for('don') }}" class="btn btn-primary btn-lg" style="background:#fff;color:var(--green);border-color:#fff">
+        <i class="fa-solid fa-heart"></i> Faire un don
+      </a>
+      <a href="{{ url_for('adhesion') }}" class="btn btn-lg" style="border:2px solid rgba(255,255,255,.6);color:#fff">
+        <i class="fa-solid fa-user-plus"></i> Adhérer à l'AKF
+      </a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

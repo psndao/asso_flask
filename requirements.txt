@@ -1,0 +1,4 @@
+flask>=3.0
+flask_sqlalchemy
+flask-mail
+stripe>=7.0

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ evt.titre }} – {{ asso.nom }}{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <span class="card-tag" style="background:rgba(255,255,255,.2);color:#fff">{{ evt.type_event }}</span>
+    <h1>{{ evt.titre }}</h1>
+    <p>
+      <i class="fa-regular fa-calendar"></i>
+      {{ evt.date_event.strftime('%A %d %B %Y') }} à {{ evt.date_event.strftime('%H:%M') }}
+      {% if evt.heure_fin %} – {{ evt.heure_fin }}{% endif %}
+    </p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container two-col-layout">
+
+    <!-- CONTENU PRINCIPAL -->
+    <div>
+      {% if evt.image %}
+        <img src="{{ url_for('static', filename='uploads/' + evt.image) }}"
+             alt="{{ evt.titre }}"
+             style="width:100%;border-radius:var(--radius);margin-bottom:2rem;max-height:400px;object-fit:cover" />
+      {% endif %}
+
+      <div class="form-card" style="margin:0">
+        <h2 style="font-family:var(--font-head);margin-bottom:1rem">À propos de cet événement</h2>
+        {% if evt.description %}
+          <div style="color:var(--text-muted);line-height:1.8;white-space:pre-wrap">{{ evt.description }}</div>
+        {% else %}
+          <p style="color:var(--text-muted)">Aucune description disponible.</p>
+        {% endif %}
+
+        {% if evt.lien_externe %}
+        <div style="margin-top:1.5rem">
+          <a href="{{ evt.lien_externe }}" target="_blank" class="btn btn-primary">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            S'inscrire / Plus d'infos
+          </a>
+        </div>
+        {% endif %}
+
+        <div style="margin-top:1.5rem">
+          <a href="{{ url_for('evenements') }}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-left"></i> Tous les événements
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR INFOS -->
+    <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+      <!-- Infos pratiques -->
+      <div class="info-card">
+        <h3 style="font-family:var(--font-head);margin-bottom:1.25rem">Informations pratiques</h3>
+        <div class="event-info-list">
+          <div class="event-info-row">
+            <i class="fa-solid fa-tag" style="color:var(--green)"></i>
+            <div>
+              <strong>Type</strong>
+              <span>{{ evt.type_event }}</span>
+            </div>
+          </div>
+          <div class="event-info-row">
+            <i class="fa-regular fa-calendar" style="color:var(--green)"></i>
+            <div>
+              <strong>Date</strong>
+              <span>{{ evt.date_event.strftime('%d/%m/%Y') }}</span>
+            </div>
+          </div>
+          <div class="event-info-row">
+            <i class="fa-regular fa-clock" style="color:var(--green)"></i>
+            <div>
+              <strong>Heure</strong>
+              <span>{{ evt.date_event.strftime('%H:%M') }}
+                {% if evt.heure_fin %} – {{ evt.heure_fin }}{% endif %}
+              </span>
+            </div>
+          </div>
+          {% if evt.lieu %}
+          <div class="event-info-row">
+            <i class="fa-solid fa-location-dot" style="color:var(--green)"></i>
+            <div>
+              <strong>Lieu</strong>
+              <span>{{ evt.lieu }}</span>
+            </div>
+          </div>
+          {% endif %}
+          {% if evt.adresse %}
+          <div class="event-info-row">
+            <i class="fa-solid fa-map" style="color:var(--green)"></i>
+            <div>
+              <strong>Adresse</strong>
+              <span>{{ evt.adresse }}</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Organiser par AKF -->
+      <div class="info-card">
+        <h3 style="font-family:var(--font-head);margin-bottom:.75rem">Organisé par</h3>
+        <p style="font-weight:600;color:var(--green)">{{ asso.nom }}</p>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-top:.25rem">{{ asso.siege }}</p>
+        <a href="{{ url_for('contact') }}" class="btn btn-outline" style="margin-top:1rem;font-size:.85rem">
+          <i class="fa-solid fa-envelope"></i> Nous contacter
+        </a>
+      </div>
+
+      <!-- Autres événements -->
+      {% if autres %}
+      <div class="info-card">
+        <h3 style="font-family:var(--font-head);margin-bottom:1rem">Prochains événements</h3>
+        {% for a in autres %}
+        <a href="{{ url_for('evenement_detail', slug=a.slug) }}" class="mini-event-card">
+          <div class="mini-event-date">
+            <span>{{ a.date_event.strftime('%d') }}</span>
+            <span>{{ a.date_event.strftime('%b') }}</span>
+          </div>
+          <div>
+            <p style="font-weight:600;font-size:.88rem">{{ a.titre }}</p>
+            <p style="font-size:.75rem;color:var(--text-muted)">{{ a.type_event }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .event-info-list { display: flex; flex-direction: column; gap: .85rem; }
+  .event-info-row  { display: flex; gap: .75rem; align-items: flex-start; font-size: .9rem; }
+  .event-info-row i { width: 18px; flex-shrink: 0; margin-top: .15rem; }
+  .event-info-row strong { display: block; font-size: .75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+  .event-info-row span { color: var(--text); }
+
+  .mini-event-card {
+    display: flex; gap: .85rem; align-items: center;
+    padding: .6rem 0; border-bottom: 1px solid var(--border);
+    text-decoration: none; color: var(--text); transition: color .15s;
+  }
+  .mini-event-card:last-child { border-bottom: none; }
+  .mini-event-card:hover { color: var(--green); }
+  .mini-event-date {
+    width: 40px; height: 40px; background: var(--green-light); border-radius: 8px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex-shrink: 0; color: var(--green); line-height: 1.1;
+  }
+  .mini-event-date span:first-child { font-weight: 700; font-size: 1rem; }
+  .mini-event-date span:last-child  { font-size: .6rem; text-transform: uppercase; }
+</style>
+{% endblock %}

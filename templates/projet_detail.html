@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ projet.titre }} – {{ asso.nom }}{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <span class="card-tag" style="background:rgba(255,255,255,.2);color:#fff">{{ projet.categorie }}</span>
+    <h1>{{ projet.titre }}</h1>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="form-card" style="max-width:800px">
+      {% if projet.image %}
+        <img src="{{ url_for('static', filename='uploads/' + projet.image) }}" alt="{{ projet.titre }}" style="width:100%;border-radius:8px;margin-bottom:2rem" />
+      {% else %}
+        <div class="card-img-placeholder" style="margin-bottom:2rem;border-radius:8px">Image du projet</div>
+      {% endif %}
+      <h2 style="font-family:var(--font-head);margin-bottom:1rem">{{ projet.titre }}</h2>
+      <p style="color:var(--text-muted)">{{ projet.description }}</p>
+      {% if projet.contenu %}
+      <div style="color:var(--text-muted);margin-top:1rem;line-height:1.8">{{ projet.contenu }}</div>
+      {% endif %}
+      <div style="margin-top:2rem">
+        <a href="{{ url_for('projets') }}" class="btn btn-outline">← Retour aux projets</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

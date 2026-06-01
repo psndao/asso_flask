@@ -1,0 +1,80 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="stat-icon-box stat-card-icon green"><i class="fa-solid fa-users"></i></div>
+    <div>
+      <h3>{{ stats.membres }}</h3>
+      <p>Membres total</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box stat-card-icon orange" style="background:#fff7ed;color:#ea580c"><i class="fa-solid fa-clock"></i></div>
+    <div>
+      <h3>{{ stats.en_attente }}</h3>
+      <p>Adhésions en attente</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box stat-card-icon gold"><i class="fa-solid fa-hand-holding-heart"></i></div>
+    <div>
+      <h3>{{ stats.dons }}</h3>
+      <p>Dons reçus</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box stat-card-icon green"><i class="fa-solid fa-euro-sign"></i></div>
+    <div>
+      <h3>{{ "%.0f"|format(stats.total_dons) }} €</h3>
+      <p>Total des dons</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box stat-card-icon blue"><i class="fa-solid fa-envelope"></i></div>
+    <div>
+      <h3>{{ stats.messages }}</h3>
+      <p>Messages reçus</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box stat-card-icon red"><i class="fa-solid fa-envelope-open"></i></div>
+    <div>
+      <h3>{{ stats.non_lus }}</h3>
+      <p>Messages non lus</p>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2><i class="fa-solid fa-users" style="color:var(--green);margin-right:.5rem"></i>Accès rapides</h2>
+    </div>
+    <div style="padding:1.5rem;display:flex;flex-direction:column;gap:.75rem">
+      <a href="{{ url_for('admin_adhesions') }}" class="btn btn-green"><i class="fa-solid fa-users"></i> Gérer les membres</a>
+      <a href="{{ url_for('admin_dons') }}" class="btn btn-green"><i class="fa-solid fa-hand-holding-heart"></i> Voir les dons</a>
+      <a href="{{ url_for('admin_messages') }}" class="btn btn-green"><i class="fa-solid fa-envelope"></i> Lire les messages</a>
+      <a href="{{ url_for('admin_projets') }}" class="btn btn-green"><i class="fa-solid fa-diagram-project"></i> Gérer les projets</a>
+      <a href="{{ url_for('admin_actualites') }}" class="btn btn-green"><i class="fa-solid fa-newspaper"></i> Gérer les actualités</a>
+      <a href="{{ url_for('admin_bureau') }}" class="btn btn-green"><i class="fa-solid fa-id-badge"></i> Gérer le bureau</a>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2><i class="fa-solid fa-circle-info" style="color:var(--green);margin-right:.5rem"></i>Informations</h2>
+    </div>
+    <div style="padding:1.5rem;font-size:.88rem;line-height:2;color:#6b7280">
+      <p><strong style="color:#1c1c1c">Association :</strong> AKF</p>
+      <p><strong style="color:#1c1c1c">RNA :</strong> W872016956</p>
+      <p><strong style="color:#1c1c1c">SIREN :</strong> 105 083 620</p>
+      <p><strong style="color:#1c1c1c">Siège :</strong> Limoges (87)</p>
+      <p><strong style="color:#1c1c1c">Base de données :</strong> SQLite (akf.db)</p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

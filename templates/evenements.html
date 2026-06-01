@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Événements – {{ asso.nom }}{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <h1>Nos Événements</h1>
+    <p>Assemblées générales, collectes, sorties et activités culturelles</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+
+    <!-- PROCHAINS ÉVÉNEMENTS -->
+    {% if a_venir %}
+    <div class="section-header">
+      <span class="section-tag">À VENIR</span>
+      <h2>Prochains événements</h2>
+    </div>
+    <div class="evenements-grid">
+      {% for e in a_venir %}
+      <article class="event-card">
+        <!-- Date badge -->
+        <div class="event-date-badge">
+          <span class="event-day">{{ e.date_event.strftime('%d') }}</span>
+          <span class="event-month">{{ e.date_event.strftime('%b %Y') }}</span>
+        </div>
+
+        {% if e.image %}
+          <img src="{{ url_for('static', filename='uploads/' + e.image) }}"
+               alt="{{ e.titre }}" class="event-img" />
+        {% else %}
+          <div class="event-img-placeholder">
+            {% if e.type_event == 'AG' %}<i class="fa-solid fa-people-group"></i>
+            {% elif e.type_event == 'Collecte' %}<i class="fa-solid fa-hand-holding-heart"></i>
+            {% elif e.type_event == 'Sortie' %}<i class="fa-solid fa-map-location-dot"></i>
+            {% elif e.type_event == 'Culturel' %}<i class="fa-solid fa-music"></i>
+            {% else %}<i class="fa-solid fa-calendar-days"></i>{% endif %}
+          </div>
+        {% endif %}
+
+        <div class="event-body">
+          <div class="event-meta">
+            <span class="event-type-badge event-type-{{ e.type_event|lower|replace(' ','-') }}">
+              {{ e.type_event }}
+            </span>
+            <span class="event-heure">
+              <i class="fa-regular fa-clock"></i>
+              {{ e.date_event.strftime('%H:%M') }}
+              {% if e.heure_fin %} – {{ e.heure_fin }}{% endif %}
+            </span>
+          </div>
+          <h3>{{ e.titre }}</h3>
+          {% if e.lieu %}
+          <p class="event-lieu">
+            <i class="fa-solid fa-location-dot"></i> {{ e.lieu }}
+          </p>
+          {% endif %}
+          {% if e.description %}
+          <p class="event-desc">{{ e.description[:150] }}{% if e.description|length > 150 %}…{% endif %}</p>
+          {% endif %}
+          <a href="{{ url_for('evenement_detail', slug=e.slug) }}" class="card-link">
+            Voir les détails →
+          </a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:4rem 0;color:var(--text-muted)">
+      <i class="fa-regular fa-calendar-xmark" style="font-size:3rem;margin-bottom:1rem;display:block"></i>
+      <p>Aucun événement prévu pour le moment.</p>
+      <p style="font-size:.9rem">Revenez bientôt !</p>
+    </div>
+    {% endif %}
+
+    <!-- ÉVÉNEMENTS PASSÉS -->
+    {% if passes %}
+    <div class="section-header" style="margin-top:4rem">
+      <span class="section-tag">PASSÉS</span>
+      <h2>Événements précédents</h2>
+    </div>
+    <div class="evenements-grid evenements-passes">
+      {% for e in passes %}
+      <article class="event-card event-card-past">
+        <div class="event-date-badge event-date-past">
+          <span class="event-day">{{ e.date_event.strftime('%d') }}</span>
+          <span class="event-month">{{ e.date_event.strftime('%b %Y') }}</span>
+        </div>
+        <div class="event-body">
+          <div class="event-meta">
+            <span class="event-type-badge" style="background:#f3f4f6;color:#6b7280">{{ e.type_event }}</span>
+          </div>
+          <h3>{{ e.titre }}</h3>
+          {% if e.lieu %}<p class="event-lieu"><i class="fa-solid fa-location-dot"></i> {{ e.lieu }}</p>{% endif %}
+          <a href="{{ url_for('evenement_detail', slug=e.slug) }}" class="card-link">Voir →</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .evenements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .event-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: transform .2s, box-shadow .2s; position: relative;
+  }
+  .event-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+
+  .event-date-badge {
+    position: absolute; top: 1rem; left: 1rem; z-index: 2;
+    background: var(--green); color: #fff; border-radius: 8px;
+    text-align: center; padding: .4rem .7rem; line-height: 1.2;
+    box-shadow: 0 2px 8px rgba(26,122,74,.3);
+  }
+  .event-date-past { background: #6b7280; }
+  .event-day   { display: block; font-size: 1.4rem; font-weight: 700; }
+  .event-month { display: block; font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; }
+
+  .event-img   { width: 100%; height: 180px; object-fit: cover; }
+  .event-img-placeholder {
+    height: 180px; background: var(--green-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: var(--green);
+  }
+
+  .event-body  { padding: 1.25rem; }
+  .event-meta  { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; flex-wrap: wrap; }
+  .event-type-badge {
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; padding: .2rem .7rem; border-radius: 99px;
+  }
+  .event-type-ag       { background: #ede9fe; color: #7c3aed; }
+  .event-type-collecte { background: #fce7f3; color: #be185d; }
+  .event-type-sortie   { background: #dcfce7; color: #15803d; }
+  .event-type-culturel { background: #fef3c7; color: #b45309; }
+  .event-type-autre    { background: var(--green-light); color: var(--green); }
+
+  .event-heure { font-size: .78rem; color: var(--text-muted); }
+  .event-card h3 { font-family: var(--font-head); font-size: 1.1rem; margin-bottom: .4rem; }
+  .event-lieu  { font-size: .82rem; color: var(--text-muted); margin-bottom: .5rem; }
+  .event-lieu i { color: var(--green); margin-right: .3rem; }
+  .event-desc  { font-size: .88rem; color: var(--text-muted); margin-bottom: .75rem; line-height: 1.5; }
+
+  .evenements-passes .event-card { opacity: .75; }
+  .evenements-passes .event-card:hover { opacity: 1; }
+
+  @media (max-width: 640px) {
+    .evenements-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}

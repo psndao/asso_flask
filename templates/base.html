@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>{% block title %}{{ asso.nom }}{% endblock %}</title>
+
+  <meta name="description" content="{{ asso.description }}" />
+
+  <!-- GOOGLE FONTS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- FONT AWESOME -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+
+  <!-- CSS -->
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}"
+  />
+
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+
+  <div class="container nav-inner">
+
+    <!-- LOGO -->
+    <a href="{{ url_for('index') }}" class="logo">
+
+      <img
+        src="{{ url_for('static', filename='img/logo.jpeg') }}"
+        alt="Logo AKF"
+        class="logo-img"
+      >
+
+      <div class="logo-content">
+
+        <span class="logo-text">
+          AK<span class="accent">F</span>
+        </span>
+
+        <span class="logo-full">
+          Association des Koungheulois de France
+        </span>
+
+      </div>
+
+    </a>
+
+    <!-- BURGER -->
+    <button
+      class="burger"
+      id="burger"
+      aria-label="Menu"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <!-- NAV LINKS -->
+    <ul class="nav-links" id="nav-links">
+
+      <li>
+        <a href="{{ url_for('index') }}">
+          Accueil
+        </a>
+      </li>
+
+      <li>
+        <a href="{{ url_for('presentation') }}">
+          À propos
+        </a>
+      </li>
+
+      <li>
+        <a href="{{ url_for('projets') }}">
+          Projets
+        </a>
+      </li>
+
+      <li>
+        <a href="{{ url_for('actualites') }}">
+          Actualités
+        </a>
+      </li>
+
+      <li>
+        <a href="{{ url_for('evenements') }}">
+          Événements
+        </a>
+      </li>
+
+      <li>
+        <a href="{{ url_for('contact') }}">
+          Contact
+        </a>
+      </li>
+
+      <li>
+        <a
+          href="{{ url_for('adhesion') }}"
+          class="btn btn-outline"
+        >
+          <i class="fa-solid fa-user-plus"></i>
+          Adhérer
+        </a>
+      </li>
+
+      <li>
+        <a
+          href="{{ url_for('don') }}"
+          class="btn btn-primary"
+        >
+          <i class="fa-solid fa-heart"></i>
+          Faire un don
+        </a>
+      </li>
+
+    </ul>
+
+  </div>
+
+</nav>
+
+<!-- FLASH MESSAGES -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+
+    <div class="flash-container">
+
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">
+          {{ msg }}
+        </div>
+      {% endfor %}
+
+    </div>
+
+  {% endif %}
+{% endwith %}
+
+<!-- MAIN -->
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+
+  <div class="container footer-grid">
+
+    <!-- BRAND -->
+    <div class="footer-brand">
+
+      <p class="logo-text footer-logo">
+        AK<span class="accent">F</span>
+      </p>
+
+      <p class="footer-name">
+        {{ asso.nom }}
+      </p>
+
+      <p class="footer-desc">
+        {{ asso.slogan }}
+      </p>
+
+      <p class="footer-legal">
+        RNA : {{ asso.rna }} ·
+        SIREN : {{ asso.siren }}
+      </p>
+
+    </div>
+
+    <!-- NAVIGATION -->
+    <div>
+
+      <h4>Navigation</h4>
+
+      <ul>
+
+        <li>
+          <a href="{{ url_for('index') }}">
+            Accueil
+          </a>
+        </li>
+
+        <li>
+          <a href="{{ url_for('presentation') }}">
+            À propos
+          </a>
+        </li>
+
+        <li>
+          <a href="{{ url_for('projets') }}">
+            Projets
+          </a>
+        </li>
+
+        <li>
+          <a href="{{ url_for('actualites') }}">
+            Actualités
+          </a>
+        </li>
+
+      </ul>
+
+    </div>
+
+    <!-- ACTIONS -->
+    <div>
+
+      <h4>Agir</h4>
+
+      <ul>
+
+        <li>
+          <a href="{{ url_for('don') }}">
+            Faire un don
+          </a>
+        </li>
+
+        <li>
+          <a href="{{ url_for('adhesion') }}">
+            Adhérer
+          </a>
+        </li>
+
+        <li>
+          <a href="{{ url_for('contact') }}">
+            Contact
+          </a>
+        </li>
+
+      </ul>
+
+    </div>
+
+    <!-- CONTACT -->
+    <div>
+
+      <h4>Contact</h4>
+
+      <p class="footer-contact-item">
+        <i class="fa-solid fa-location-dot"></i>
+        {{ asso.siege }}
+      </p>
+
+      {% if asso.email %}
+      <p class="footer-contact-item">
+
+        <i class="fa-solid fa-envelope"></i>
+
+        <a href="mailto:{{ asso.email }}">
+          {{ asso.email }}
+        </a>
+
+      </p>
+      {% endif %}
+
+      {% if asso.telephone %}
+      <p class="footer-contact-item">
+
+        <i class="fa-solid fa-phone"></i>
+
+        {{ asso.telephone }}
+
+      </p>
+      {% endif %}
+
+      <!-- SOCIAL -->
+      <div class="social-links">
+
+        <a href="{{ asso.facebook }}">
+          <i class="fa-brands fa-facebook"></i>
+        </a>
+
+        <a href="{{ asso.instagram }}">
+          <i class="fa-brands fa-instagram"></i>
+        </a>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="footer-bottom container">
+
+    <p>
+      © {{ now.year }} {{ asso.nom }}
+    </p>
+
+    <p>
+      Déclarée le {{ asso.declaration }}
+    </p>
+
+    <a href="{{ url_for('mentions_legales') }}">
+      Mentions légales
+    </a>
+
+  </div>
+
+</footer>
+
+<!-- JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>
