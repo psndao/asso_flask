@@ -213,23 +213,31 @@ class MembreBureau(db.Model):
 
 
 class Cotisation(db.Model):
-    id           = db.Column(db.Integer, primary_key=True)
-    adhesion_id  = db.Column(db.Integer, db.ForeignKey("adhesion.id"), nullable=False)
-    adhesion     = db.relationship("Adhesion", backref="cotisations")
-    mois         = db.Column(db.Integer, nullable=False)   # 1-12
-    annee        = db.Column(db.Integer, nullable=False)
-    montant      = db.Column(db.Float, nullable=False)
-    statut       = db.Column(db.String(20), default="en_attente")  # paye / en_attente / retard
-    date_paiement= db.Column(db.DateTime)
-    mode_paiement= db.Column(db.String(50))  # virement, espèces, wave, paypal...
-    note         = db.Column(db.String(300))
-    date_creation= db.Column(db.DateTime, default=datetime.utcnow)
+    id              = db.Column(db.Integer, primary_key=True)
+    adhesion_id     = db.Column(db.Integer, db.ForeignKey("adhesion.id"), nullable=False)
+    adhesion        = db.relationship("Adhesion", backref="cotisations")
+    mois            = db.Column(db.Integer, nullable=False)
+    annee           = db.Column(db.Integer, nullable=False)
+    montant         = db.Column(db.Float, nullable=False)
+    statut          = db.Column(db.String(20), default="en_attente")  # en_attente / paye / rejete / retard
+    date_paiement   = db.Column(db.DateTime)
+    mode_paiement   = db.Column(db.String(50))
+    justificatif    = db.Column(db.String(200))   # nom du fichier uploadé
+    note            = db.Column(db.String(300))
+    rappel1_envoye  = db.Column(db.Boolean, default=False)  # J+10
+    rappel2_envoye  = db.Column(db.Boolean, default=False)  # J+20
+    alerte_envoye   = db.Column(db.Boolean, default=False)  # J+30
+    date_creation   = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
     def label_mois(self):
         mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin",
                    "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
         return f"{mois_fr[self.mois]} {self.annee}"
+
+    @property
+    def jours_depuis_creation(self):
+        return (datetime.utcnow() - self.date_creation).days
 
 # ─────────────────────────────────────────────
 # DÉCORATEUR ADMIN
@@ -1111,6 +1119,8 @@ def admin_cotisations():
         total_membres=total_membres, total_payes=total_payes,
         total_attente=total_attente, total_retard=total_retard,
         montant_percu=montant_percu, montant_attendu=montant_attendu,
+        membres_non_inclus=[a for a in Adhesion.query.filter_by(statut="actif").all()
+                            if not Cotisation.query.filter_by(adhesion_id=a.id, mois=mois, annee=annee).first()],
         now=now
     )
 
@@ -1119,27 +1129,39 @@ def admin_cotisations():
 @login_required
 def admin_cotisation_statut(id, statut):
     cot = Cotisation.query.get_or_404(id)
-    if statut in ["paye", "en_attente", "retard"]:
+    if statut in ["paye", "en_attente", "retard", "rejete"]:
         cot.statut = statut
         if statut == "paye":
             cot.date_paiement = datetime.now()
-            mode = request.args.get("mode", "non précisé")
-            cot.mode_paiement = mode
+            cot.mode_paiement = request.args.get("mode", "non précisé")
         db.session.commit()
-        flash(f"Cotisation de {cot.adhesion.prenom} {cot.adhesion.nom} mise à jour.", "success")
-    return redirect(url_for("admin_cotisations",
-                            mois=cot.mois, annee=cot.annee))
+        flash(f"Cotisation de {cot.adhesion.prenom} {cot.adhesion.nom} → {statut}.", "success")
+    return redirect(url_for("admin_cotisations", mois=cot.mois, annee=cot.annee))
+
+
+@app.route("/admin/cotisations/<int:id>/justificatif", methods=["POST"])
+@login_required
+def admin_cotisation_justificatif(id):
+    cot   = Cotisation.query.get_or_404(id)
+    fichier = request.files.get("justificatif")
+    if fichier and fichier.filename:
+        ext  = fichier.filename.rsplit(".", 1)[-1].lower()
+        nom  = f"justif_{cot.id}_{cot.mois}_{cot.annee}.{ext}"
+        fichier.save(os.path.join(app.config["UPLOAD_FOLDER"], nom))
+        cot.justificatif = nom
+        db.session.commit()
+        flash("Justificatif enregistré.", "success")
+    return redirect(url_for("admin_cotisations", mois=cot.mois, annee=cot.annee))
 
 
 @app.route("/admin/cotisations/marquer-retard")
 @login_required
 def admin_cotisations_marquer_retard():
-    """Marque en retard toutes les cotisations en_attente dont la date est passée le 5."""
     now   = datetime.now()
     mois  = int(request.args.get("mois", now.month))
     annee = int(request.args.get("annee", now.year))
     from datetime import date
-    echeance = date(annee, mois, 5)
+    echeance = date(annee, mois, 10)
     if date.today() > echeance:
         nb = Cotisation.query.filter_by(
             mois=mois, annee=annee, statut="en_attente"
@@ -1147,7 +1169,106 @@ def admin_cotisations_marquer_retard():
         db.session.commit()
         flash(f"{nb} cotisation(s) marquée(s) en retard.", "warning")
     else:
-        flash("La date d'échéance (le 5) n'est pas encore passée.", "info")
+        flash("La date d'échéance (le 10) n'est pas encore passée.", "info")
+    return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
+
+
+def _envoyer_rappel(cot, numero, label):
+    """Envoie un email de rappel numéroté à un membre."""
+    try:
+        sujets = {
+            1: f"[AKF] Rappel cotisation – {label}",
+            2: f"[AKF] 2ème rappel cotisation – {label}",
+            3: f"[AKF] ⚠️ Alerte retard cotisation – {label}",
+        }
+        intro = {
+            1: "Nous vous rappelons que votre cotisation du mois de",
+            2: "Malgré notre premier rappel, nous constatons que votre cotisation du mois de",
+            3: "⚠️ Votre cotisation du mois de",
+        }
+        fin = {
+            1: "Merci de régulariser votre situation dans les meilleurs délais.",
+            2: "Nous vous invitons à régulariser d'urgence votre situation.",
+            3: "est désormais en retard. Veuillez contacter le bureau immédiatement.",
+        }
+        msg = MailMessage(
+            subject=sujets[numero],
+            recipients=[cot.adhesion.email]
+        )
+        msg.html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:#1a7a4a;padding:20px;text-align:center">
+            <h1 style="color:#fff;margin:0;font-size:1.2rem">
+              Association des Koungheulois de France
+            </h1>
+          </div>
+          <div style="padding:30px;background:#fff">
+            <p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
+            <p>{intro[numero]} <strong>{label}</strong> n'a pas encore été enregistrée.</p>
+            <div style="background:#f8faf9;border-left:4px solid #1a7a4a;border-radius:4px;
+                        padding:16px 20px;margin:20px 0">
+              <p style="margin:0"><strong>Montant attendu :</strong> {cot.montant:.0f} €</p>
+              <p style="margin:6px 0 0"><strong>Mois :</strong> {label}</p>
+            </div>
+            <p>{fin[numero]}</p>
+            <p><strong>Moyens de paiement acceptés :</strong></p>
+            <ul style="color:#555;line-height:1.8">
+              <li>Virement bancaire</li>
+              <li>Wave / PayPal</li>
+              <li>Espèces lors d'une réunion</li>
+            </ul>
+            <p style="color:#555">Pour toute question :
+              <a href="mailto:{ASSO['email']}" style="color:#1a7a4a">{ASSO['email']}</a>
+            </p>
+          </div>
+          <div style="background:#f3f4f6;padding:12px;text-align:center;font-size:.75rem;color:#9ca3af">
+            {ASSO['nom']} · RNA {ASSO['rna']} · {ASSO['siege']}
+          </div>
+        </div>"""
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Erreur rappel {cot.adhesion.email}: {e}")
+        return False
+
+
+@app.route("/admin/cotisations/rappel/<int:numero>")
+@login_required
+def admin_cotisations_rappel(numero):
+    """Envoie le rappel N (1=J+10, 2=J+20, 3=J+30) aux non-payés."""
+    now   = datetime.now()
+    mois  = int(request.args.get("mois", now.month))
+    annee = int(request.args.get("annee", now.year))
+    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin",
+               "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    label = f"{mois_fr[mois]} {annee}"
+
+    champ_rappel = {1: "rappel1_envoye", 2: "rappel2_envoye", 3: "alerte_envoye"}
+    filtre       = {1: ["en_attente"], 2: ["en_attente","retard"], 3: ["retard"]}
+
+    cotisations = Cotisation.query.filter(
+        Cotisation.mois == mois,
+        Cotisation.annee == annee,
+        Cotisation.statut.in_(filtre[numero])
+    ).all()
+
+    envoyes = ignores = 0
+    for cot in cotisations:
+        if not cot.adhesion.email:
+            continue
+        # Ne pas renvoyer si déjà envoyé
+        if getattr(cot, champ_rappel[numero]):
+            ignores += 1
+            continue
+        if _envoyer_rappel(cot, numero, label):
+            setattr(cot, champ_rappel[numero], True)
+            if numero == 3:
+                cot.statut = "retard"
+            envoyes += 1
+
+    db.session.commit()
+    noms = {1: "1er rappel", 2: "2ème rappel", 3: "alerte retard"}
+    flash(f"✅ {noms[numero]} : {envoyes} email(s) envoyé(s). {ignores} déjà envoyé(s).", "success")
     return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
 
 
@@ -1214,7 +1335,133 @@ def admin_cotisations_relancer():
     return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
 
 
+@app.route("/admin/cotisations/ajouter/<int:mois>/<int:annee>", methods=["POST"])
+@login_required
+def admin_cotisation_ajouter(mois, annee):
+    adhesion_id = request.form.get("adhesion_id")
+    montant     = float(request.form.get("montant", 10))
+    if adhesion_id:
+        existant = Cotisation.query.filter_by(
+            adhesion_id=adhesion_id, mois=mois, annee=annee
+        ).first()
+        if not existant:
+            db.session.add(Cotisation(
+                adhesion_id=int(adhesion_id), mois=mois, annee=annee,
+                montant=montant, statut="en_attente"
+            ))
+            db.session.commit()
+            flash("Membre ajouté aux cotisations du mois.", "success")
+        else:
+            flash("Ce membre est déjà inclus dans ce mois.", "danger")
+    return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
 
+
+@app.route("/admin/cotisations/action-groupe/<int:mois>/<int:annee>")
+@login_required
+def admin_cotisations_action_groupe(mois, annee):
+    ids_str = request.args.get("ids", "")
+    statut  = request.args.get("statut", "en_attente")
+    if ids_str and statut in ["paye", "en_attente", "retard"]:
+        ids = [int(i) for i in ids_str.split(",") if i.isdigit()]
+        for cot_id in ids:
+            cot = Cotisation.query.get(cot_id)
+            if cot:
+                cot.statut = statut
+                if statut == "paye":
+                    cot.date_paiement = datetime.now()
+                    cot.mode_paiement = "Action groupée"
+        db.session.commit()
+        flash(f"✅ {len(ids)} cotisation(s) mise(s) à jour en '{statut}'.", "success")
+    return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
+
+
+@app.route("/admin/cotisations/email-cible/<int:mois>/<int:annee>", methods=["POST"])
+@login_required
+def admin_cotisations_email_cible(mois, annee):
+    cible  = request.form.get("cible", "tous")
+    sujet  = request.form.get("sujet", "").strip()
+    corps  = request.form.get("corps", "").strip()
+    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin",
+               "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    label = f"{mois_fr[mois]} {annee}"
+
+    query = Cotisation.query.filter_by(mois=mois, annee=annee)
+    if cible == "en_attente":
+        query = query.filter_by(statut="en_attente")
+    elif cible == "retard":
+        query = query.filter_by(statut="retard")
+    elif cible == "non_payes":
+        query = query.filter(Cotisation.statut.in_(["en_attente", "retard"]))
+
+    cotisations = query.all()
+    envoyes = 0
+    for cot in cotisations:
+        if not cot.adhesion.email: continue
+        try:
+            msg = MailMessage(subject=sujet, recipients=[cot.adhesion.email])
+            msg.html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:#1a7a4a;padding:20px;text-align:center">
+                <h1 style="color:#fff;margin:0;font-size:1.3rem">AKF – Cotisations {label}</h1>
+              </div>
+              <div style="padding:30px">
+                <p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
+                <div style="line-height:1.7">{corps.replace(chr(10), '<br>')}</div>
+                <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
+                <p style="color:#999;font-size:.8rem;text-align:center">{ASSO['nom']} · RNA {ASSO['rna']}</p>
+              </div>
+            </div>"""
+            mail.send(msg)
+            envoyes += 1
+        except Exception as e:
+            print(f"Erreur email {cot.adhesion.email}: {e}")
+
+    flash(f"✅ {envoyes} email(s) envoyé(s).", "success")
+    return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
+
+
+@app.route("/admin/cotisations/email-selection/<int:mois>/<int:annee>", methods=["POST"])
+@login_required
+def admin_cotisations_email_selection(mois, annee):
+    ids_str = request.form.get("ids", "")
+    sujet   = request.form.get("sujet", "").strip()
+    corps   = request.form.get("corps", "").strip()
+
+    if not ids_str:
+        flash("Aucun membre sélectionné.", "danger")
+        return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
+
+    ids = [int(i) for i in ids_str.split(",") if i.isdigit()]
+    envoyes = 0
+    for cot_id in ids:
+        cot = Cotisation.query.get(cot_id)
+        if not cot or not cot.adhesion.email: continue
+        try:
+            msg = MailMessage(subject=sujet, recipients=[cot.adhesion.email])
+            msg.html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:#1a7a4a;padding:20px;text-align:center">
+                <h1 style="color:#fff;margin:0;font-size:1.3rem">Association des Koungheulois de France</h1>
+              </div>
+              <div style="padding:30px">
+                <p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
+                <div style="line-height:1.7">{corps.replace(chr(10), '<br>')}</div>
+                <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
+                <p style="color:#999;font-size:.8rem;text-align:center">{ASSO['nom']} · RNA {ASSO['rna']}</p>
+              </div>
+            </div>"""
+            mail.send(msg)
+            envoyes += 1
+        except Exception as e:
+            print(f"Erreur email {cot.adhesion.email}: {e}")
+
+    flash(f"✅ {envoyes} email(s) envoyé(s) aux membres sélectionnés.", "success")
+    return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
+
+
+# ─────────────────────────────────────────────
+# INIT DB
+# ─────────────────────────────────────────────
 
 def init_db():
     with app.app_context():
