@@ -2,6 +2,11 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}" />
+<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}" />
+<link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}" />
+<link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- ── TITRE ── -->
@@ -9,7 +14,7 @@
 
   <!-- ── META SEO ── -->
   <meta name="description" content="{% block meta_description %}{{ asso.description }}{% endblock %}" />
-  <meta name="keywords" content="{% block meta_keywords %}Association Koungheulois France, AKF, diaspora sénégalaise, Koungheul Sénégal, solidarité, entraide, développement{% endblock %}" />
+  <meta name="keywords" content="{% block meta_keywords %}Association Koungheulois France, AKF, diaspora Koungheuloise, Koungheul Sénégal, solidarité, entraide, développement{% endblock %}" />
   <meta name="author" content="{{ asso.nom }}" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="{% block canonical %}https://asso-flask.onrender.com{% endblock %}" />
@@ -35,7 +40,7 @@
     "@context": "https://schema.org",
     "@type": "NGO",
     "name": "{{ asso.nom }}",
-    "alternateName": "",
+    "alternateName": "AKF",
     "description": "{{ asso.description }}",
     "url": "https://asso-flask.onrender.com",
     "logo": "https://asso-flask.onrender.com/static/img/logo.jpeg",

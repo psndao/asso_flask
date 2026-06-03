@@ -55,8 +55,68 @@
 .apropos-icon { transition:background .3s, color .3s; }
 .apropos-card:hover .apropos-icon { background:var(--green) !important; color:#fff !important; }
 
-/* Valeurs */
-.valeur-item {
+/* ── ORGANIGRAMME ── */
+.organigramme {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  padding:1rem 0;
+}
+.orga-level {
+  display:flex; gap:1.25rem; justify-content:center; flex-wrap:wrap;
+  width:100%;
+}
+.orga-connector {
+  width:2px; height:32px; background:var(--green); opacity:.3;
+  margin:0 auto;
+}
+
+/* Cartes */
+.orga-card {
+  background:var(--bg); border:2px solid var(--border); border-radius:14px;
+  padding:1.25rem 1.5rem; display:flex; align-items:center; gap:1rem;
+  transition:transform .25s, box-shadow .25s, border-color .25s;
+  cursor:default; min-width:240px;
+}
+.orga-card:hover {
+  transform:translateY(-4px); box-shadow:0 8px 24px rgba(26,122,74,.12);
+  border-color:var(--green);
+}
+
+/* Président */
+.orga-card-president {
+  border-color:var(--green); border-width:2.5px;
+  background:var(--green-light); min-width:260px;
+  box-shadow:0 4px 16px rgba(26,122,74,.15);
+}
+.orga-card-president .orga-info strong { color:var(--green); font-size:1rem; }
+
+/* Niveau 2 */
+.orga-card-level2 { border-color:var(--border); }
+.orga-card-level2:hover { border-color:var(--green); }
+
+/* Niveau 3 */
+.orga-card-level3 {
+  border-style:dashed; font-size:.9rem;
+}
+
+/* Photos */
+.orga-photo {
+  width:100px; height:100px; border-radius:50%; overflow:hidden;
+  background:var(--green); display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:700; font-size:2rem; flex-shrink:0;
+  border:4px solid var(--green);
+  box-shadow:0 4px 12px rgba(26,122,74,.25);
+}
+.orga-photo img { width:100%; height:100%; object-fit:cover; }
+.orga-photo-sm { width:80px; height:80px; font-size:1.6rem; }
+
+.orga-info { display:flex; flex-direction:column; gap:.15rem; }
+.orga-info strong { font-size:.88rem; font-weight:700; display:block; }
+.orga-info span { font-size:.75rem; color:var(--text-muted); }
+
+@media (max-width:768px) {
+  .orga-level { flex-direction:column; align-items:center; }
+  .orga-card  { min-width:unset; width:100%; max-width:300px; }
+}
   text-align:center; padding:1.5rem;
   border-radius:var(--radius); transition:transform .25s, background .25s;
 }
@@ -297,7 +357,7 @@ blockquote:hover { transform:translateX(4px); }
   </div>
 </section>
 
-<!-- BUREAU -->
+<!-- BUREAU — ORGANIGRAMME -->
 <section class="section team-section">
   <div class="container">
     <div class="section-header reveal">
@@ -307,29 +367,82 @@ blockquote:hover { transform:translateX(4px); }
         Élu lors de l'assemblée constitutive du {{ asso.fondation }}
       </p>
     </div>
-    <div class="bureau-grid">
-      {% for m in membres_ca %}
-      <div class="bureau-card reveal delay-{{ loop.index }}">
-        <div class="bureau-photo">
-          {% if m.photo %}
-            {% if m.photo.startswith('static') or '/' in m.photo %}
-              <img src="{{ url_for('static', filename=m.photo) }}" alt="{{ m.nom }}">
-            {% else %}
+
+    {% if membres_ca %}
+    <div class="organigramme">
+
+      <!-- NIVEAU 1 : Président -->
+      <div class="orga-level orga-level-1 reveal">
+        {% for m in membres_ca if 'résident' in m.poste %}
+        <div class="orga-card orga-card-president">
+          <div class="orga-photo">
+            {% if m.photo %}
               <img src="{{ url_for('static', filename='uploads/' + m.photo) }}" alt="{{ m.nom }}"
                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
               <span style="display:none">{{ m.nom[0] }}</span>
+            {% else %}
+              <span>{{ m.nom[0] }}</span>
             {% endif %}
-          {% else %}
-            <span>{{ m.nom[0] }}</span>
-          {% endif %}
+          </div>
+          <div class="orga-info">
+            <strong>{{ m.nom }}</strong>
+            <span>{{ m.poste }}</span>
+          </div>
         </div>
-        <div class="bureau-info">
-          <h4>{{ m.nom }}</h4>
-          <p>{{ m.poste }}</p>
-        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
+
+      <!-- CONNECTEUR -->
+      <div class="orga-connector reveal"></div>
+
+      <!-- NIVEAU 2 : Secrétaire, Trésorier(e) -->
+      <div class="orga-level orga-level-2 reveal">
+        {% for m in membres_ca if 'résident' not in m.poste and m.ordre <= 4 %}
+        <div class="orga-card orga-card-level2">
+          <div class="orga-photo orga-photo-sm">
+            {% if m.photo %}
+              <img src="{{ url_for('static', filename='uploads/' + m.photo) }}" alt="{{ m.nom }}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <span style="display:none">{{ m.nom[0] }}</span>
+            {% else %}
+              <span>{{ m.nom[0] }}</span>
+            {% endif %}
+          </div>
+          <div class="orga-info">
+            <strong>{{ m.nom }}</strong>
+            <span>{{ m.poste }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- CONNECTEUR -->
+      <div class="orga-connector reveal"></div>
+
+      <!-- NIVEAU 3 : Responsables -->
+      <div class="orga-level orga-level-3 reveal">
+        {% for m in membres_ca if m.ordre > 4 %}
+        <div class="orga-card orga-card-level3">
+          <div class="orga-photo orga-photo-sm">
+            {% if m.photo %}
+              <img src="{{ url_for('static', filename='uploads/' + m.photo) }}" alt="{{ m.nom }}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <span style="display:none">{{ m.nom[0] }}</span>
+            {% else %}
+              <span>{{ m.nom[0] }}</span>
+            {% endif %}
+          </div>
+          <div class="orga-info">
+            <strong>{{ m.nom }}</strong>
+            <span>{{ m.poste }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
     </div>
+    {% endif %}
+
   </div>
 </section>
 
