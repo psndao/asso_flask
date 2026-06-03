@@ -4,29 +4,68 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- ── TITRE ── -->
   <title>{% block title %}{{ asso.nom }}{% endblock %}</title>
 
-  <meta name="description" content="{{ asso.description }}" />
+  <!-- ── META SEO ── -->
+  <meta name="description" content="{% block meta_description %}{{ asso.description }}{% endblock %}" />
+  <meta name="keywords" content="{% block meta_keywords %}Association Koungheulois France, AKF, diaspora sénégalaise, Koungheul Sénégal, solidarité, entraide, développement{% endblock %}" />
+  <meta name="author" content="{{ asso.nom }}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="{% block canonical %}https://asso-flask.onrender.com{% endblock %}" />
+
+  <!-- ── OPEN GRAPH (Facebook, WhatsApp, LinkedIn) ── -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="{{ asso.nom }}" />
+  <meta property="og:title"       content="{% block og_title %}{{ asso.nom }}{% endblock %}" />
+  <meta property="og:description" content="{% block og_description %}{{ asso.description }}{% endblock %}" />
+  <meta property="og:url"         content="{% block og_url %}https://asso-flask.onrender.com{% endblock %}" />
+  <meta property="og:image"       content="{% block og_image %}https://asso-flask.onrender.com/static/img/logo.jpeg{% endblock %}" />
+  <meta property="og:locale"      content="fr_FR" />
+
+  <!-- ── TWITTER CARD ── -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="{% block twitter_title %}{{ asso.nom }}{% endblock %}" />
+  <meta name="twitter:description" content="{% block twitter_description %}{{ asso.description }}{% endblock %}" />
+  <meta name="twitter:image"       content="{% block twitter_image %}https://asso-flask.onrender.com/static/img/logo.jpeg{% endblock %}" />
+
+  <!-- ── SCHEMA.ORG (Google Rich Results) ── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NGO",
+    "name": "{{ asso.nom }}",
+    "alternateName": "",
+    "description": "{{ asso.description }}",
+    "url": "https://asso-flask.onrender.com",
+    "logo": "https://asso-flask.onrender.com/static/img/logo.jpeg",
+    "foundingDate": "2026-03-11",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "22 Avenue des Coutures",
+      "addressLocality": "Limoges",
+      "addressCountry": "FR"
+    },
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "{{ asso.email }}",
+      "contactType": "customer service"
+    },
+    "sameAs": [
+      "{{ asso.instagram }}"
+    ]
+  }
+  </script>
 
   <!-- GOOGLE FONTS -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <!-- FONT AWESOME -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
   <!-- CSS -->
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}"
-  />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 
   {% block extra_css %}{% endblock %}
 </head>
@@ -283,15 +322,21 @@
       {% endif %}
 
       <!-- SOCIAL -->
-      <div class="social-links">
+      <div class="social-links" style="display:flex;flex-direction:row;align-items:center;gap:.75rem;margin-top:.75rem">
 
-        <a href="{{ asso.facebook }}">
+        <a href="{{ asso.facebook }}" target="_blank">
           <i class="fa-brands fa-facebook"></i>
         </a>
 
-        <a href="{{ asso.instagram }}">
+        <a href="{{ asso.instagram }}" target="_blank">
           <i class="fa-brands fa-instagram"></i>
         </a>
+
+        {% if asso.tiktok %}
+        <a href="{{ asso.tiktok }}" target="_blank">
+          <i class="fa-brands fa-tiktok"></i>
+        </a>
+        {% endif %}
 
       </div>
 

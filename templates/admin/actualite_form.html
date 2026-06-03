@@ -28,7 +28,7 @@
         <div class="form-group">
           <label>Catégorie</label>
           <select name="categorie">
-            {% for cat in ['Événements','Projets','Administratif','Solidarité','Communication','Autre'] %}
+            {% for cat in ['Portrait','Événements','Projets','Administratif','Solidarité','Communication','Autre'] %}
               <option {{ 'selected' if actu and actu.categorie == cat }}>{{ cat }}</option>
             {% endfor %}
           </select>
