@@ -17,7 +17,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
 
-    /* SIDEBAR */
+    /* ── SIDEBAR ── */
     .sidebar { width: var(--sidebar-w); background: var(--text); color: #fff; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; }
     .sidebar-brand { padding: 1.5rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.1); }
     .sidebar-brand .akf { font-size: 1.5rem; font-weight: 700; color: #fff; }
@@ -30,10 +30,10 @@
     .sidebar-nav a i { width: 18px; text-align: center; font-size: .9rem; }
     .badge-count { margin-left: auto; background: #ef4444; color: #fff; font-size: .65rem; font-weight: 700; padding: .1rem .45rem; border-radius: 99px; }
     .sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,.1); }
-    .sidebar-footer a { display: flex; align-items: center; gap: .6rem; color: rgba(255,255,255,.5); font-size: .82rem; transition: color .15s; text-decoration: none; }
+    .sidebar-footer a { display: flex; align-items: center; gap: .6rem; color: rgba(255,255,255,.5); font-size: .82rem; transition: color .15s; text-decoration: none; margin-bottom: .4rem; }
     .sidebar-footer a:hover { color: #fff; }
 
-    /* MAIN */
+    /* ── MAIN ── */
     .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
     .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
     .topbar h1 { font-size: 1.2rem; font-weight: 700; }
@@ -41,10 +41,11 @@
     .topbar-user i { color: var(--green); }
     .content { padding: 2rem; flex: 1; }
 
-    /* CARDS */
+    /* ── STAT CARDS ── */
     .stat-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 2rem; }
-    .stat-card { background: var(--white); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); display: flex; align-items: center; gap: 1rem; }
-    .stat-card-icon { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+    .stat-card { background: var(--white); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); display: flex; align-items: center; gap: 1rem; transition: transform .2s, box-shadow .2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+    .stat-icon-box { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
     .stat-card-icon.green  { background: var(--green-light); color: var(--green); }
     .stat-card-icon.gold   { background: #fef3c7; color: var(--gold); }
     .stat-card-icon.red    { background: #fee2e2; color: #ef4444; }
@@ -52,7 +53,7 @@
     .stat-card h3 { font-size: 1.8rem; font-weight: 700; line-height: 1; }
     .stat-card p  { font-size: .8rem; color: var(--text-muted); margin-top: .2rem; }
 
-    /* TABLE */
+    /* ── TABLE ── */
     .table-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
     .table-card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .table-card-header h2 { font-size: 1rem; font-weight: 700; }
@@ -62,7 +63,7 @@
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover { background: var(--bg); }
 
-    /* BADGES */
+    /* ── BADGES ── */
     .badge { display: inline-block; padding: .2rem .7rem; border-radius: 99px; font-size: .72rem; font-weight: 700; }
     .badge-green  { background: var(--green-light); color: var(--green); }
     .badge-orange { background: #fff7ed; color: #ea580c; }
@@ -70,7 +71,7 @@
     .badge-gray   { background: var(--border); color: var(--text-muted); }
     .badge-blue   { background: #eff6ff; color: #3b82f6; }
 
-    /* BTNS */
+    /* ── BOUTONS ── */
     .btn { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem 1rem; border-radius: 8px; font-size: .82rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: .15s; }
     .btn-green  { background: var(--green); color: #fff; }
     .btn-green:hover { background: var(--green-dark); }
@@ -80,19 +81,42 @@
     .btn-gray:hover { background: #d1d5db; }
     .actions { display: flex; gap: .5rem; }
 
-    /* FLASH */
+    /* ── FLASH ── */
     .flash-list { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: .5rem; }
     .flash { padding: .75rem 1.25rem; border-radius: 8px; font-size: .88rem; font-weight: 500; }
     .flash-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
     .flash-danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+    .flash-info    { background: #eff6ff; color: #1d4ed8; border-left: 4px solid #3b82f6; }
+    .flash-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
 
-    /* MESSAGE DETAIL */
+    /* ── MESSAGE DETAIL ── */
     .msg-box { background: var(--white); border-radius: var(--radius); padding: 2rem; box-shadow: var(--shadow); }
     .msg-meta { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
     .msg-meta div { font-size: .88rem; }
     .msg-meta strong { display: block; color: var(--text-muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .2rem; }
     .msg-body { line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+
+    /* ── FORMULAIRES ── */
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: .4rem; color: var(--text); }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: .65rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px; font-family: inherit;
+      font-size: .9rem; background: var(--white);
+      color: var(--text); transition: border-color .15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--green); outline: none;
+      box-shadow: 0 0 0 3px rgba(26,122,74,.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
   </style>
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
 
@@ -133,21 +157,23 @@
       <i class="fa-solid fa-calendar-days"></i> Événements
     </a>
     <div class="nav-section">Communication</div>
-    <a href="{{ url_for('admin_email_groupe') }}" class="{{ 'active' if request.endpoint == 'admin_email_groupe' }}">
-      <i class="fa-solid fa-paper-plane"></i> Email groupé
-    </a>
+    
+    <a href="{{ url_for('admin_envoyer_email') }}" class="{{ 'active' if request.endpoint == 'admin_envoyer_email' }}">
+  <i class="fa-solid fa-envelope-open-text"></i> Envoyer un email
+</a>
     <div class="nav-section">Site</div>
     <a href="{{ url_for('index') }}" target="_blank">
       <i class="fa-solid fa-arrow-up-right-from-square"></i> Voir le site
     </a>
   </nav>
   <div class="sidebar-footer">
-    <a href="{{ url_for('admin_parametres') }}" style="margin-bottom:.5rem">
+    <a href="{{ url_for('admin_parametres') }}">
       <i class="fa-solid fa-gear"></i> Paramètres
     </a>
     <a href="{{ url_for('admin_logout') }}">
       <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
     </a>
+
   </div>
 </aside>
 

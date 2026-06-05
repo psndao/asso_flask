@@ -275,9 +275,9 @@ def index():
 
     stats = [
         {"value": "2026",                    "label": "Année de fondation"},
-        {"value": total_adhesions,           "label": "Total Adhésions"},
+        {"value": total_adhesions,           "label": "Adhésions récentes"},
         {"value": total_dons,                "label": "Dons reçus"},
-        {"value": f"{montant_total:.0f} €",  "label": "Montant collecté"},
+        {"value": f"{montant_total:.0f} €",  "label": "Montant récemment collecté"},
     ]
 
     projets    = Projet.query.filter_by(publie=True).order_by(Projet.date_creation.desc()).limit(3).all()
@@ -590,16 +590,19 @@ def admin_supprimer_admin(id):
 @login_required
 def admin_dashboard():
     stats = {
-        "membres":    Adhesion.query.count(),
-        "en_attente": Adhesion.query.filter_by(statut="en_attente").count(),
-        "dons":       Don.query.count(),
-        "total_dons": db.session.query(db.func.sum(Don.montant)).scalar() or 0,
-        "messages":   ContactMessage.query.count(),
-        "non_lus":    ContactMessage.query.filter_by(lu=False).count(),
-        "projets":    Projet.query.count(),
-        "actualites": Actualite.query.count(),
-        "bureau":     MembreBureau.query.count(),
-    }
+    "membres":    Adhesion.query.count(),
+    "en_attente": Adhesion.query.filter_by(statut="en_attente").count(),
+    "dons":       Don.query.count(),
+    "total_dons": db.session.query(db.func.sum(Don.montant)).scalar() or 0,
+    "messages":   ContactMessage.query.count(),
+    "non_lus":    ContactMessage.query.filter_by(lu=False).count(),
+    "projets":    Projet.query.count(),
+    "actualites": Actualite.query.count(),
+    "bureau":     MembreBureau.query.count(),
+    # ← AJOUTER CES DEUX LIGNES :
+    "cot_payes":  Cotisation.query.filter_by(mois=datetime.now().month, annee=datetime.now().year, statut="paye").count(),
+    "cot_attente": Cotisation.query.filter_by(mois=datetime.now().month, annee=datetime.now().year, statut="en_attente").count(),
+}
     return render_template("admin/dashboard.html", asso=ASSO, stats=stats, now=datetime.now())
 
 
@@ -858,109 +861,134 @@ def admin_message_supprimer(id):
 # ─────────────────────────────────────────────
 # ADMIN — EMAIL GROUPÉ
 # ─────────────────────────────────────────────
-
 @app.route("/admin/email-groupe", methods=["GET", "POST"])
 @login_required
 def admin_email_groupe():
 
+    from collections import Counter
+
     # Listes pour les filtres
-    villes = sorted(set(
-        a.ville for a in Adhesion.query.filter(
-            Adhesion.statut == "actif",
-            Adhesion.ville != None,
-            Adhesion.ville != ""
-        ).with_entities(Adhesion.ville).distinct().all()
-        if a.ville
-    ))
-    types = ["membre_actif", "membre_bienfaiteur", "membre_honneur"]
+    membres_actifs = Adhesion.query.filter_by(statut="actif").order_by(Adhesion.nom).all()
+
+    villes = sorted(set(a.ville for a in membres_actifs if a.ville))
+    types  = ["membre_actif", "membre_bienfaiteur", "membre_honneur"]
+    adhesions_par_ville = Counter(a.ville for a in membres_actifs if a.ville)
+    total_actifs = len(membres_actifs)
 
     if request.method == "POST":
-        sujet      = request.form.get("sujet", "").strip()
-        corps      = request.form.get("corps", "").strip()
-        filtre     = request.form.get("filtre", "tous")
+        sujet        = request.form.get("sujet", "").strip()
+        corps        = request.form.get("corps", "").strip()
+        mode_envoi   = request.form.get("mode_envoi", "groupe")
+        filtre       = request.form.get("filtre", "tous")
         ville_filtre = request.form.get("ville_filtre", "")
         type_filtre  = request.form.get("type_filtre", "")
+        contacts_ids = request.form.get("contacts_ids", "")
         piece_jointe = request.files.get("piece_jointe")
 
         if not sujet or not corps:
             flash("Le sujet et le message sont obligatoires.", "danger")
             return redirect(url_for("admin_email_groupe"))
 
-        # Construire la liste des destinataires
-        query = Adhesion.query.filter_by(statut="actif")
-        if filtre == "type" and type_filtre:
-            query = query.filter_by(type_adhesion=type_filtre)
-        elif filtre == "ville" and ville_filtre:
-            query = query.filter_by(ville=ville_filtre)
-
-        destinataires = [a for a in query.all() if a.email]
+        # ── Construire la liste des destinataires ──
+        if mode_envoi == "individuel":
+            # Mode contact individuel — IDs séparés par virgule
+            ids = [int(i) for i in contacts_ids.split(",") if i.strip().isdigit()]
+            if not ids:
+                flash("Veuillez sélectionner au moins un contact.", "danger")
+                return redirect(url_for("admin_email_groupe"))
+            destinataires = Adhesion.query.filter(Adhesion.id.in_(ids)).all()
+            destinataires = [a for a in destinataires if a.email]
+        else:
+            # Mode groupe
+            query = Adhesion.query.filter_by(statut="actif")
+            if filtre == "type" and type_filtre:
+                query = query.filter_by(type_adhesion=type_filtre)
+            elif filtre == "ville" and ville_filtre:
+                query = query.filter_by(ville=ville_filtre)
+            destinataires = [a for a in query.all() if a.email]
 
         if not destinataires:
-            flash("Aucun destinataire trouvé pour ce filtre.", "danger")
+            flash("Aucun destinataire trouvé.", "danger")
             return redirect(url_for("admin_email_groupe"))
 
-        # Lire la pièce jointe si présente
+        # ── Pièce jointe ──
         pj_data = None
         pj_nom  = None
         if piece_jointe and piece_jointe.filename:
             pj_data = piece_jointe.read()
             pj_nom  = piece_jointe.filename
 
-        # Envoi des emails
+        # ── Envoi ──
         envoyes = 0
         erreurs = 0
 
         for adhesion in destinataires:
             try:
                 msg = MailMessage(
-                    subject   = sujet,
-                    recipients= [adhesion.email],
-                    html      = f"""
+                    subject    = sujet,
+                    recipients = [adhesion.email],
+                    html       = f"""
                     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-                      <div style="background:#1a7a4a;padding:20px;text-align:center">
-                        <h1 style="color:#fff;margin:0;font-size:1.4rem">
+                      <div style="background:#1a7a4a;padding:24px;text-align:center">
+                        <h1 style="color:#fff;margin:0;font-size:1.3rem;letter-spacing:.02em">
                           Association des Koungheulois de France
                         </h1>
+                        <p style="color:rgba(255,255,255,.75);margin:.4rem 0 0;font-size:.85rem">
+                          Solidarité · Entraide · Développement
+                        </p>
                       </div>
                       <div style="padding:30px;background:#fff">
-                        <p style="color:#555">Bonjour <strong>{adhesion.prenom} {adhesion.nom}</strong>,</p>
-                        <div style="color:#333;line-height:1.7">{corps.replace(chr(10), '<br>')}</div>
-                        <hr style="border:none;border-top:1px solid #eee;margin:30px 0">
-                        <p style="color:#999;font-size:.8rem;text-align:center">
-                          Association des Koungheulois de France — {ASSO['siege']}<br>
-                          RNA : {ASSO['rna']} · 
+                        <p style="color:#374151;font-size:.95rem">
+                          Bonjour <strong>{adhesion.prenom} {adhesion.nom}</strong>,
+                        </p>
+                        <div style="color:#4b5563;line-height:1.8;font-size:.92rem">
+                          {corps.replace(chr(10), '<br>')}
+                        </div>
+                        <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0">
+                        <div style="text-align:center">
+                          <a href="https://asso-flask.onrender.com"
+                             style="background:#1a7a4a;color:#fff;padding:10px 24px;
+                                    border-radius:8px;text-decoration:none;font-size:.85rem;
+                                    font-weight:600;display:inline-block">
+                            Visiter notre site
+                          </a>
+                        </div>
+                        <p style="color:#9ca3af;font-size:.75rem;text-align:center;margin-top:20px">
+                          {ASSO['nom']} · RNA {ASSO['rna']}<br>
+                          {ASSO['siege']}<br>
                           <a href="mailto:{ASSO['email']}" style="color:#1a7a4a">{ASSO['email']}</a>
                         </p>
                       </div>
                     </div>
                     """
                 )
-                # Pièce jointe
                 if pj_data and pj_nom:
                     msg.attach(pj_nom, "application/octet-stream", pj_data)
-
                 mail.send(msg)
                 envoyes += 1
-
             except Exception as e:
                 erreurs += 1
                 print(f"Erreur envoi à {adhesion.email} : {e}")
 
         if envoyes > 0:
-            flash(f"✅ Email envoyé à {envoyes} membre(s)."
-                  + (f" ⚠️ {erreurs} échec(s)." if erreurs else ""), "success")
+            flash(
+                f"Email envoyé à {envoyes} membre(s)."
+                + (f" {erreurs} échec(s)." if erreurs else ""),
+                "success"
+            )
         else:
-            flash(f"❌ Échec de l'envoi. Vérifiez la configuration email.", "danger")
+            flash("Échec de l'envoi. Vérifiez la configuration email.", "danger")
 
         return redirect(url_for("admin_email_groupe"))
 
-    # Compteurs pour affichage
-    total_actifs = Adhesion.query.filter_by(statut="actif").count()
-
     return render_template("admin/email_groupe.html",
-                           asso=ASSO, villes=villes, types=types,
-                           total_actifs=total_actifs, now=datetime.now())
-
+                           asso=ASSO,
+                           villes=villes,
+                           types=types,
+                           total_actifs=total_actifs,
+                           membres_actifs=membres_actifs,
+                           adhesions_par_ville=adhesions_par_ville,
+                           now=datetime.now())
 
 # ─────────────────────────────────────────────
 # ADMIN — ÉVÉNEMENTS (CRUD)
@@ -1047,6 +1075,115 @@ def admin_evenement_supprimer(id):
     db.session.commit()
     flash("Événement supprimé.", "success")
     return redirect(url_for("admin_evenements"))
+
+
+# ─────────────────────────────────────────────
+# ADMIN — ENVOYER EMAIL (nouvelle page)
+# ─────────────────────────────────────────────
+
+@app.route("/admin/envoyer-email", methods=["GET", "POST"])
+@login_required
+def admin_envoyer_email():
+
+    membres = Adhesion.query.filter_by(statut="actif").order_by(Adhesion.nom).all()
+    villes  = sorted(set(m.ville for m in membres if m.ville))
+
+    if request.method == "POST":
+        sujet           = request.form.get("sujet", "").strip()
+        corps           = request.form.get("corps", "").strip()
+        destinataires_ids = request.form.get("destinataires_ids", "")
+        piece_jointe    = request.files.get("piece_jointe")
+
+        if not sujet or not corps:
+            flash("Le sujet et le message sont obligatoires.", "danger")
+            return redirect(url_for("admin_envoyer_email"))
+
+        ids = [int(i) for i in destinataires_ids.split(",") if i.strip().isdigit()]
+        if not ids:
+            flash("Veuillez sélectionner au moins un destinataire.", "danger")
+            return redirect(url_for("admin_envoyer_email"))
+
+        destinataires = Adhesion.query.filter(Adhesion.id.in_(ids)).all()
+        destinataires = [a for a in destinataires if a.email]
+
+        if not destinataires:
+            flash("Aucun destinataire valide trouvé.", "danger")
+            return redirect(url_for("admin_envoyer_email"))
+
+        # Pièce jointe
+        pj_data = None
+        pj_nom  = None
+        if piece_jointe and piece_jointe.filename:
+            pj_data = piece_jointe.read()
+            pj_nom  = piece_jointe.filename
+
+        envoyes = 0
+        erreurs = 0
+
+        for a in destinataires:
+            try:
+                msg = MailMessage(
+                    subject    = sujet,
+                    recipients = [a.email],
+                    html       = f"""
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+                      <div style="background:#1a7a4a;padding:24px;text-align:center">
+                        <h1 style="color:#fff;margin:0;font-size:1.3rem">
+                          Association des Koungheulois de France
+                        </h1>
+                        <p style="color:rgba(255,255,255,.75);margin:.4rem 0 0;font-size:.85rem">
+                          Solidarité · Entraide · Développement
+                        </p>
+                      </div>
+                      <div style="padding:30px;background:#fff">
+                        <p style="color:#374151;font-size:.95rem;margin-bottom:1rem">
+                          Bonjour <strong>{a.prenom} {a.nom}</strong>,
+                        </p>
+                        <div style="color:#4b5563;line-height:1.8;font-size:.92rem">
+                          {corps.replace(chr(10), '<br>')}
+                        </div>
+                        <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0">
+                        <div style="text-align:center">
+                          <a href="https://asso-flask.onrender.com"
+                             style="background:#1a7a4a;color:#fff;padding:10px 24px;
+                                    border-radius:8px;text-decoration:none;
+                                    font-size:.85rem;font-weight:600;display:inline-block">
+                            Visiter notre site
+                          </a>
+                        </div>
+                        <p style="color:#9ca3af;font-size:.75rem;text-align:center;margin-top:20px">
+                          {ASSO['nom']} · RNA {ASSO['rna']}<br>
+                          {ASSO['siege']}<br>
+                          <a href="mailto:{ASSO['email']}" style="color:#1a7a4a">{ASSO['email']}</a>
+                        </p>
+                      </div>
+                    </div>
+                    """
+                )
+                if pj_data and pj_nom:
+                    msg.attach(pj_nom, "application/octet-stream", pj_data)
+                mail.send(msg)
+                envoyes += 1
+            except Exception as e:
+                erreurs += 1
+                print(f"Erreur envoi {a.email}: {e}")
+
+        if envoyes > 0:
+            flash(
+                f"Email envoyé à {envoyes} membre(s)."
+                + (f" {erreurs} échec(s)." if erreurs else ""),
+                "success"
+            )
+        else:
+            flash("Échec de l'envoi. Vérifiez la configuration email.", "danger")
+
+        return redirect(url_for("admin_envoyer_email"))
+
+    return render_template("admin/envoyer_email.html",
+                           asso=ASSO,
+                           membres=membres,
+                           villes=villes,
+                           now=datetime.now())
 
 
 # ─────────────────────────────────────────────

@@ -1,27 +1,166 @@
 {% extends "admin/base_admin.html" %}
 {% block title %}Email groupé{% endblock %}
-{% block page_title %}Envoyer un email groupé{% endblock %}
+{% block page_title %}Envoyer un email{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Layout */
+.email-layout { display:flex; gap:1.5rem; align-items:flex-start; }
+
+/* Onglets mode */
+.mode-tabs { display:flex; gap:.5rem; margin-bottom:1.5rem; }
+.mode-tab {
+  flex:1; padding:.7rem 1rem; border:2px solid var(--border);
+  border-radius:10px; background:var(--bg); cursor:pointer;
+  font-weight:600; font-size:.85rem; text-align:center;
+  transition:.15s; color:var(--text);
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+}
+.mode-tab.active { border-color:var(--green); background:var(--green-light); color:var(--green); }
+.mode-tab:hover { border-color:var(--green); }
+
+/* Filtres groupe */
+.filtre-grid { display:flex; flex-direction:column; gap:.5rem; margin-bottom:1rem; }
+.filtre-card {
+  display:flex; align-items:center; gap:.85rem;
+  border:2px solid var(--border); border-radius:10px;
+  padding:.75rem 1rem; cursor:pointer; transition:.15s; background:var(--bg);
+}
+.filtre-card.active { border-color:var(--green); background:var(--green-light); }
+.filtre-icon {
+  width:38px; height:38px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.95rem; flex-shrink:0;
+}
+.filtre-card strong { display:block; font-size:.88rem; }
+.filtre-card span { font-size:.75rem; color:var(--text-muted); }
+
+/* Recherche contact individuel */
+.contact-search {
+  position:relative; margin-bottom:1rem;
+}
+.contact-search input {
+  width:100%; padding:.65rem 1rem .65rem 2.5rem;
+  border:1.5px solid var(--border); border-radius:8px;
+  font-family:inherit; font-size:.88rem;
+}
+.contact-search input:focus { border-color:var(--green); outline:none; box-shadow:0 0 0 3px rgba(26,122,74,.1); }
+.contact-search i { position:absolute; left:.85rem; top:50%; transform:translateY(-50%); color:var(--text-muted); }
+
+.contacts-list {
+  max-height:280px; overflow-y:auto;
+  border:1px solid var(--border); border-radius:8px;
+}
+.contact-item {
+  display:flex; align-items:center; gap:.75rem;
+  padding:.65rem 1rem; cursor:pointer;
+  border-bottom:1px solid var(--border); transition:background .1s;
+}
+.contact-item:last-child { border-bottom:none; }
+.contact-item:hover { background:var(--green-light); }
+.contact-item.selected { background:var(--green-light); border-left:3px solid var(--green); }
+.contact-avatar {
+  width:34px; height:34px; border-radius:50%;
+  background:var(--green); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.78rem; font-weight:700; flex-shrink:0;
+}
+.contact-name { font-size:.85rem; font-weight:600; }
+.contact-email { font-size:.72rem; color:var(--text-muted); }
+
+/* Destinataires sélectionnés */
+.dest-tags {
+  display:flex; flex-wrap:wrap; gap:.4rem;
+  min-height:38px; padding:.4rem;
+  border:1.5px solid var(--border); border-radius:8px;
+  margin-bottom:.75rem; background:var(--bg);
+}
+.dest-tag {
+  display:flex; align-items:center; gap:.35rem;
+  background:var(--green); color:#fff;
+  border-radius:99px; padding:.2rem .65rem;
+  font-size:.75rem; font-weight:600;
+}
+.dest-tag button {
+  background:none; border:none; color:#fff;
+  cursor:pointer; padding:0; font-size:.8rem; line-height:1;
+}
+
+/* Format bar */
+.format-bar {
+  display:flex; gap:.2rem; padding:.4rem .5rem;
+  background:var(--bg); border:1px solid var(--border);
+  border-bottom:none; border-radius:8px 8px 0 0;
+}
+.format-bar button {
+  width:28px; height:28px; border:none; background:none;
+  border-radius:4px; cursor:pointer; color:var(--text);
+  display:flex; align-items:center; justify-content:center;
+  font-size:.8rem; transition:background .1s;
+}
+.format-bar button:hover { background:var(--border); }
+.format-bar .sep { width:1px; background:var(--border); margin:3px 2px; }
+
+/* Upload */
+.upload-zone {
+  border:2px dashed var(--border); border-radius:8px;
+  padding:1rem; text-align:center; cursor:pointer;
+  color:var(--text-muted); transition:.15s;
+}
+.upload-zone:hover { border-color:var(--green); color:var(--green); background:var(--green-light); }
+.upload-zone i { font-size:1.3rem; margin-bottom:.3rem; display:block; }
+.upload-zone p { font-size:.82rem; margin:0; }
+
+/* Aperçu */
+.apercu-info {
+  display:flex; gap:.6rem; align-items:flex-start;
+  background:#eff6ff; border-radius:8px; padding:.65rem 1rem;
+  font-size:.8rem; color:#1d4ed8; margin-bottom:1rem;
+}
+
+/* Stats sidebar */
+.dest-stat {
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:.82rem; padding:.4rem 0; border-bottom:1px solid var(--border);
+}
+.dest-stat:last-child { border-bottom:none; }
+
+/* Compteur */
+.char-counter { font-size:.72rem; color:var(--text-muted); text-align:right; margin-top:.25rem; }
+
+@media (max-width:900px) { .email-layout { flex-direction:column; } }
+</style>
+{% endblock %}
 
 {% block content %}
 
-<div class="email-groupe-layout">
+<div class="email-layout">
 
-  <!-- FORMULAIRE -->
-  <div class="table-card" style="flex:1.5">
+  <!-- ── FORMULAIRE ── -->
+  <div class="table-card" style="flex:1.6">
     <div class="table-card-header">
       <h2><i class="fa-solid fa-paper-plane" style="color:var(--green);margin-right:.5rem"></i>Composer le message</h2>
     </div>
     <div style="padding:1.5rem">
-      <form method="POST" action="{{ url_for('admin_email_groupe') }}" enctype="multipart/form-data">
+      <form method="POST" action="{{ url_for('admin_email_groupe') }}" enctype="multipart/form-data" id="form-email"
+            onsubmit="return confirmerEnvoi()">
 
-        <!-- DESTINATAIRES -->
-        <div style="margin-bottom:1.5rem">
-          <label style="font-weight:700;display:block;margin-bottom:.75rem">
-            <i class="fa-solid fa-users" style="color:var(--green)"></i> Destinataires
+        <!-- ONGLETS MODE -->
+        <div class="mode-tabs">
+          <div class="mode-tab active" onclick="setMode('groupe', this)" id="tab-groupe">
+            <i class="fa-solid fa-users"></i> Email groupé
+          </div>
+          <div class="mode-tab" onclick="setMode('individuel', this)" id="tab-individuel">
+            <i class="fa-solid fa-user"></i> Contact individuel
+          </div>
+        </div>
+
+        <!-- ── MODE GROUPE ── -->
+        <div id="bloc-groupe">
+          <label style="font-weight:700;display:block;margin-bottom:.75rem;font-size:.88rem">
+            <i class="fa-solid fa-filter" style="color:var(--green)"></i> Filtrer les destinataires
           </label>
-
           <div class="filtre-grid">
-
             <div class="filtre-card active" onclick="setFiltre(this,'tous')">
               <input type="radio" name="filtre" value="tous" checked style="display:none">
               <div class="filtre-icon" style="background:var(--green-light);color:var(--green)">
@@ -32,7 +171,6 @@
                 <span>{{ total_actifs }} membres</span>
               </div>
             </div>
-
             <div class="filtre-card" onclick="setFiltre(this,'type')">
               <input type="radio" name="filtre" value="type" style="display:none">
               <div class="filtre-icon" style="background:#eff6ff;color:#3b82f6">
@@ -40,10 +178,9 @@
               </div>
               <div>
                 <strong>Par type d'adhésion</strong>
-                <span>Actif, Bienfaiteur…</span>
+                <span>Actif, Bienfaiteur, Honneur</span>
               </div>
             </div>
-
             <div class="filtre-card" onclick="setFiltre(this,'ville')">
               <input type="radio" name="filtre" value="ville" style="display:none">
               <div class="filtre-icon" style="background:#fff7ed;color:#ea580c">
@@ -51,14 +188,12 @@
               </div>
               <div>
                 <strong>Par ville</strong>
-                <span>Cibler une ville</span>
+                <span>Cibler une ville précise</span>
               </div>
             </div>
-
           </div>
 
-          <!-- Filtre type -->
-          <div id="select-type" style="display:none;margin-top:.75rem">
+          <div id="select-type" style="display:none;margin-bottom:.75rem">
             <select name="type_filtre" style="width:100%;padding:.65rem 1rem;border:1px solid var(--border);border-radius:8px;font-family:inherit">
               <option value="">-- Choisir un type --</option>
               {% for t in types %}
@@ -67,8 +202,7 @@
             </select>
           </div>
 
-          <!-- Filtre ville -->
-          <div id="select-ville" style="display:none;margin-top:.75rem">
+          <div id="select-ville" style="display:none;margin-bottom:.75rem">
             <select name="ville_filtre" style="width:100%;padding:.65rem 1rem;border:1px solid var(--border);border-radius:8px;font-family:inherit">
               <option value="">-- Choisir une ville --</option>
               {% for v in villes %}
@@ -78,73 +212,135 @@
           </div>
         </div>
 
-        <!-- SUJET -->
-        <div class="form-group">
-          <label><i class="fa-solid fa-heading" style="color:var(--green)"></i> Sujet *</label>
-          <input type="text" name="sujet" placeholder="Ex: Convocation Assemblée Générale AKF 2026" required />
+        <!-- ── MODE INDIVIDUEL ── -->
+        <div id="bloc-individuel" style="display:none">
+          <label style="font-weight:700;display:block;margin-bottom:.75rem;font-size:.88rem">
+            <i class="fa-solid fa-user" style="color:var(--green)"></i> Choisir un ou plusieurs contacts
+          </label>
+
+          <!-- Tags destinataires sélectionnés -->
+          <div class="dest-tags" id="dest-tags">
+            <span style="color:var(--text-muted);font-size:.78rem;padding:.2rem .4rem" id="placeholder-tags">
+              Aucun contact sélectionné
+            </span>
+          </div>
+          <input type="hidden" name="contacts_ids" id="contacts-ids-hidden" value="">
+
+          <!-- Recherche -->
+          <div class="contact-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="search-contact" placeholder="Rechercher par nom, email, ville..."
+                   oninput="filtrerContacts(this.value)" />
+          </div>
+
+          <!-- Liste des contacts -->
+          <div class="contacts-list" id="contacts-list">
+            {% for a in membres_actifs %}
+            <div class="contact-item" data-id="{{ a.id }}"
+                 data-nom="{{ a.prenom }} {{ a.nom }}"
+                 data-email="{{ a.email }}"
+                 data-ville="{{ a.ville or '' }}"
+                 onclick="toggleContact(this)">
+              <div class="contact-avatar">{{ a.prenom[0] }}{{ a.nom[0] if a.nom else '' }}</div>
+              <div style="flex:1">
+                <div class="contact-name">{{ a.prenom }} {{ a.nom }}</div>
+                <div class="contact-email">{{ a.email }}{% if a.ville %} · {{ a.ville }}{% endif %}</div>
+              </div>
+              <i class="fa-solid fa-circle-check" style="color:var(--green);display:none" id="check-{{ a.id }}"></i>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div style="display:flex;justify-content:space-between;margin-top:.5rem">
+            <span style="font-size:.75rem;color:var(--text-muted)" id="nb-selectionnes">0 contact(s) sélectionné(s)</span>
+            <button type="button" onclick="toutSelectionner()"
+                    style="font-size:.75rem;color:var(--green);background:none;border:none;cursor:pointer;font-weight:600">
+              Tout sélectionner
+            </button>
+          </div>
         </div>
 
-        <!-- CORPS -->
-        <div class="form-group">
-          <label><i class="fa-solid fa-align-left" style="color:var(--green)"></i> Message *</label>
+        <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0">
 
-          <!-- Barre de formatage -->
+        <!-- SUJET -->
+        <div class="form-group">
+          <label style="font-weight:700;font-size:.88rem">
+            <i class="fa-solid fa-heading" style="color:var(--green)"></i> Sujet *
+          </label>
+          <input type="text" name="sujet" id="sujet"
+                 placeholder="Ex: Convocation Assemblée Générale AKF 2026" required />
+        </div>
+
+        <!-- MESSAGE -->
+        <div class="form-group">
+          <label style="font-weight:700;font-size:.88rem">
+            <i class="fa-solid fa-align-left" style="color:var(--green)"></i> Message *
+          </label>
           <div class="format-bar">
             <button type="button" onclick="inserer('**','**')" title="Gras"><i class="fa-solid fa-bold"></i></button>
             <button type="button" onclick="inserer('_','_')" title="Italique"><i class="fa-solid fa-italic"></i></button>
+            <div class="sep"></div>
             <button type="button" onclick="insererLigne()" title="Séparateur"><i class="fa-solid fa-minus"></i></button>
-            <button type="button" onclick="insererPuce()" title="Liste à puces"><i class="fa-solid fa-list-ul"></i></button>
+            <button type="button" onclick="insererPuce()" title="Puce"><i class="fa-solid fa-list-ul"></i></button>
+            <div class="sep"></div>
+            <button type="button" onclick="insererSignature()" title="Signature AKF" style="font-size:.7rem;width:auto;padding:0 .5rem;font-weight:600">
+              Signature
+            </button>
           </div>
-
           <textarea name="corps" id="corps" rows="10" required
+                    oninput="updateCounter()"
                     placeholder="Bonjour,&#10;&#10;Nous vous informons que...&#10;&#10;Cordialement,&#10;Le Bureau de l'AKF"
                     style="border-radius:0 0 8px 8px;border-top:none"></textarea>
+          <div class="char-counter"><span id="char-count">0</span> caractères</div>
         </div>
 
         <!-- PIÈCE JOINTE -->
         <div class="form-group">
-          <label><i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Pièce jointe (facultatif)</label>
+          <label style="font-weight:700;font-size:.88rem">
+            <i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Pièce jointe (facultatif)
+          </label>
           <div class="upload-zone" onclick="document.getElementById('piece_jointe').click()">
             <i class="fa-solid fa-cloud-arrow-up"></i>
             <p>Cliquez pour sélectionner un fichier</p>
-            <span id="nom-fichier" style="font-size:.8rem;color:var(--green)"></span>
+            <span id="nom-fichier" style="font-size:.78rem;color:var(--green);margin-top:.3rem;display:block"></span>
           </div>
           <input type="file" id="piece_jointe" name="piece_jointe"
                  style="display:none" onchange="afficherFichier(this)" />
         </div>
 
-        <!-- APERÇU INFO -->
-        <div class="apercu-info" id="apercu-info">
+        <!-- INFO -->
+        <div class="apercu-info">
           <i class="fa-solid fa-circle-info"></i>
-          <span>L'email sera personnalisé avec le prénom et nom de chaque destinataire.</span>
+          <span>L'email sera automatiquement personnalisé avec le prénom et nom de chaque destinataire.</span>
         </div>
 
-        <button type="submit" class="btn btn-green" style="width:100%;justify-content:center;padding:.9rem;font-size:1rem">
+        <button type="submit" class="btn btn-green"
+                style="width:100%;justify-content:center;padding:.9rem;font-size:1rem">
           <i class="fa-solid fa-paper-plane"></i>
-          Envoyer l'email groupé
+          Envoyer <span id="label-envoi">à tous les membres actifs</span>
         </button>
 
       </form>
     </div>
   </div>
 
-  <!-- PANNEAU DROIT : infos + historique -->
-  <div style="flex:.6;display:flex;flex-direction:column;gap:1.25rem">
+  <!-- ── PANNEAU DROIT ── -->
+  <div style="flex:.55;display:flex;flex-direction:column;gap:1.25rem">
 
-    <!-- Stats destinataires -->
+    <!-- Stats -->
     <div class="table-card">
       <div class="table-card-header">
         <h2><i class="fa-solid fa-chart-pie" style="color:var(--green);margin-right:.5rem"></i>Membres actifs</h2>
       </div>
-      <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.75rem">
+      <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.3rem">
         <div class="dest-stat">
-          <span><i class="fa-solid fa-users" style="color:var(--green)"></i> Total actifs</span>
-          <strong>{{ total_actifs }}</strong>
+          <span><i class="fa-solid fa-users" style="color:var(--green);margin-right:.4rem"></i> Total actifs</span>
+          <strong style="color:var(--green)">{{ total_actifs }}</strong>
         </div>
         {% for v in villes[:8] %}
         <div class="dest-stat">
-          <span><i class="fa-solid fa-location-dot" style="color:#ea580c"></i> {{ v }}</span>
-          <strong>{{ adhesions_par_ville[v] if adhesions_par_ville is defined else '' }}</strong>
+          <span><i class="fa-solid fa-location-dot" style="color:#ea580c;margin-right:.4rem"></i> {{ v }}</span>
+          <strong>{{ adhesions_par_ville.get(v, '') }}</strong>
         </div>
         {% endfor %}
       </div>
@@ -155,11 +351,37 @@
       <div class="table-card-header">
         <h2><i class="fa-solid fa-lightbulb" style="color:#d97706;margin-right:.5rem"></i>Conseils</h2>
       </div>
-      <div style="padding:1.25rem;font-size:.85rem;color:var(--text-muted);line-height:1.8">
-        <p>💡 Utilisez <strong>Bonjour [Prénom]</strong> — l'email sera automatiquement personnalisé.</p>
-        <p>📎 Formats acceptés pour la pièce jointe : PDF, Word, Excel, images.</p>
-        <p>⚠️ Vérifiez votre message avant envoi — il n'y a pas de confirmation.</p>
-        <p>📧 Les emails sont envoyés depuis : <strong>{{ asso.email }}</strong></p>
+      <div style="padding:1.25rem;font-size:.82rem;color:var(--text-muted);line-height:1.85">
+        <p><i class="fa-solid fa-user" style="color:var(--green)"></i> Utilisez <strong>Bonjour [Prénom]</strong> — personnalisation automatique.</p>
+        <p><i class="fa-solid fa-paperclip" style="color:var(--green)"></i> Formats pièce jointe : PDF, Word, Excel, images.</p>
+        <p><i class="fa-solid fa-triangle-exclamation" style="color:#d97706"></i> Vérifiez avant envoi — pas d'annulation possible.</p>
+        <p><i class="fa-solid fa-envelope" style="color:var(--green)"></i> Envoyé depuis : <strong>{{ asso.email }}</strong></p>
+        <p><i class="fa-solid fa-user-check" style="color:var(--green)"></i> Mode individuel : sélectionnez un ou plusieurs contacts précis.</p>
+      </div>
+    </div>
+
+    <!-- Modèles rapides -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-file-lines" style="color:var(--green);margin-right:.5rem"></i>Modèles rapides</h2>
+      </div>
+      <div style="padding:1rem;display:flex;flex-direction:column;gap:.5rem">
+        <button type="button" class="btn btn-gray" onclick="chargerModele('ag')"
+                style="font-size:.78rem;justify-content:flex-start">
+          <i class="fa-solid fa-people-group"></i> Convocation AG
+        </button>
+        <button type="button" class="btn btn-gray" onclick="chargerModele('cotisation')"
+                style="font-size:.78rem;justify-content:flex-start">
+          <i class="fa-solid fa-coins"></i> Rappel cotisation
+        </button>
+        <button type="button" class="btn btn-gray" onclick="chargerModele('evenement')"
+                style="font-size:.78rem;justify-content:flex-start">
+          <i class="fa-solid fa-calendar-days"></i> Annonce événement
+        </button>
+        <button type="button" class="btn btn-gray" onclick="chargerModele('bienvenue')"
+                style="font-size:.78rem;justify-content:flex-start">
+          <i class="fa-solid fa-hand-wave"></i> Bienvenue nouveau membre
+        </button>
       </div>
     </div>
 
@@ -169,119 +391,270 @@
 
 {% endblock %}
 
-{% block extra_css %}
-<style>
-  .email-groupe-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
-
-  /* Filtres */
-  .filtre-grid { display: flex; flex-direction: column; gap: .6rem; }
-  .filtre-card {
-    display: flex; align-items: center; gap: 1rem;
-    border: 2px solid var(--border); border-radius: 10px;
-    padding: .85rem 1rem; cursor: pointer; transition: .15s; background: var(--bg);
-  }
-  .filtre-card.active { border-color: var(--green); background: var(--green-light); }
-  .filtre-icon {
-    width: 40px; height: 40px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1rem; flex-shrink: 0;
-  }
-  .filtre-card div:last-child strong { display: block; font-size: .9rem; }
-  .filtre-card div:last-child span { font-size: .78rem; color: var(--text-muted); }
-
-  /* Éditeur WYSIWYG */
-  .format-bar {
-    display: flex; gap: .25rem; padding: .4rem .5rem;
-    background: var(--bg); border: 1px solid var(--border);
-    border-bottom: none; border-radius: 8px 8px 0 0;
-  }
-  .format-bar button {
-    width: 30px; height: 30px; border: none; background: none;
-    border-radius: 4px; cursor: pointer; color: var(--text);
-    display: flex; align-items: center; justify-content: center;
-    font-size: .85rem; transition: background .1s;
-  }
-  .format-bar button:hover { background: var(--border); }
-  .format-sep { width: 1px; background: var(--border); margin: 4px 2px; }
-
-  .editeur-wysiwyg {
-    min-height: 200px; border: 1px solid var(--border);
-    border-radius: 0 0 8px 8px; padding: .75rem 1rem;
-    font-family: var(--font-body); font-size: .95rem; line-height: 1.7;
-    outline: none; background: var(--bg);
-  }
-  .editeur-wysiwyg:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,122,74,.1); }
-  .editeur-wysiwyg:empty::before { content: attr(placeholder); color: #9ca3af; }
-
-  /* Upload zone */
-  .upload-zone {
-    border: 2px dashed var(--border); border-radius: 8px;
-    padding: 1.25rem; text-align: center; cursor: pointer;
-    color: var(--text-muted); transition: .15s;
-  }
-  .upload-zone:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
-  .upload-zone i { font-size: 1.5rem; margin-bottom: .4rem; display: block; }
-  .upload-zone p { font-size: .85rem; margin: 0; }
-
-  /* Aperçu info */
-  .apercu-info {
-    display: flex; gap: .6rem; align-items: flex-start;
-    background: #eff6ff; border-radius: 8px; padding: .75rem 1rem;
-    font-size: .82rem; color: #1d4ed8; margin-bottom: 1rem;
-  }
-
-  /* Stats destinataires */
-  .dest-stat {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: .85rem; padding: .3rem 0; border-bottom: 1px solid var(--border);
-  }
-  .dest-stat:last-child { border-bottom: none; }
-
-  @media (max-width: 900px) {
-    .email-groupe-layout { flex-direction: column; }
-  }
-</style>
-{% endblock %}
-
 {% block extra_js %}
 <script>
-  function setFiltre(div, val) {
+let modeActuel = 'groupe';
+let selectedContacts = {};
+
+// Fonctions globales appelées par onclick
+function setMode(mode, tab) {
+  modeActuel = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('bloc-groupe').style.display     = mode === 'groupe'     ? 'block' : 'none';
+  document.getElementById('bloc-individuel').style.display = mode === 'individuel' ? 'block' : 'none';
+  updateLabelEnvoi();
+}
+
+function setFiltre(div, val) {
+  document.querySelectorAll('.filtre-card').forEach(c => c.classList.remove('active'));
+  div.classList.add('active');
+  div.querySelector('input[type=radio]').checked = true;
+  document.getElementById('select-type').style.display  = val === 'type'  ? 'block' : 'none';
+  document.getElementById('select-ville').style.display = val === 'ville' ? 'block' : 'none';
+  updateLabelEnvoi();
+}
+
+// ── MODE TABS ─────────────────────────────────
+document.querySelectorAll('.mode-tab').forEach(function(tab) {
+  tab.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const mode = this.id === 'tab-individuel' ? 'individuel' : 'groupe';
+    modeActuel = mode;
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('bloc-groupe').style.display     = mode === 'groupe'     ? 'block' : 'none';
+    document.getElementById('bloc-individuel').style.display = mode === 'individuel' ? 'block' : 'none';
+    updateLabelEnvoi();
+  });
+});
+
+// ── FILTRES GROUPE ────────────────────────────
+document.querySelectorAll('.filtre-card').forEach(function(card) {
+  card.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const val = this.querySelector('input[type=radio]').value;
     document.querySelectorAll('.filtre-card').forEach(c => c.classList.remove('active'));
-    div.classList.add('active');
-    // Coche le radio caché dans la div
-    div.querySelector('input[type=radio]').checked = true;
+    this.classList.add('active');
+    this.querySelector('input[type=radio]').checked = true;
     document.getElementById('select-type').style.display  = val === 'type'  ? 'block' : 'none';
     document.getElementById('select-ville').style.display = val === 'ville' ? 'block' : 'none';
-  }
+    updateLabelEnvoi();
+  });
+});
 
-  function inserer(avant, apres) {
-    const ta    = document.getElementById('corps');
-    const start = ta.selectionStart;
-    const end   = ta.selectionEnd;
-    const sel   = ta.value.substring(start, end);
-    ta.value    = ta.value.substring(0, start) + avant + sel + apres + ta.value.substring(end);
-    ta.focus();
-    ta.selectionStart = start + avant.length;
-    ta.selectionEnd   = end   + avant.length;
-  }
+// ── CONTACTS INDIVIDUELS ─────────────────────
+document.querySelectorAll('.contact-item').forEach(function(item) {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    const id   = this.dataset.id;
+    const nom  = this.dataset.nom;
+    const check = document.getElementById('check-' + id);
+    if (selectedContacts[id]) {
+      delete selectedContacts[id];
+      this.classList.remove('selected');
+      if (check) check.style.display = 'none';
+    } else {
+      selectedContacts[id] = nom;
+      this.classList.add('selected');
+      if (check) check.style.display = 'inline';
+    }
+    renderTags();
+    updateLabelEnvoi();
+  });
+});
 
-  function insererLigne() {
-    const ta  = document.getElementById('corps');
-    const pos = ta.selectionStart;
-    ta.value  = ta.value.substring(0, pos) + '\n---\n' + ta.value.substring(pos);
-    ta.focus();
+function renderTags() {
+  const tags = document.getElementById('dest-tags');
+  const ids  = Object.keys(selectedContacts);
+  tags.innerHTML = '';
+  if (ids.length === 0) {
+    tags.innerHTML = '<span style="color:var(--text-muted);font-size:.78rem;padding:.2rem .4rem">Aucun contact sélectionné</span>';
+  } else {
+    ids.forEach(id => {
+      const tag = document.createElement('div');
+      tag.className = 'dest-tag';
+      tag.innerHTML = selectedContacts[id] + ' <button onclick="retirerContact('' + id + '')" type="button">&times;</button>';
+      tags.appendChild(tag);
+    });
   }
+  document.getElementById('contacts-ids-hidden').value = ids.join(',');
+  document.getElementById('nb-selectionnes').textContent = ids.length + ' contact(s) sélectionné(s)';
+}
 
-  function insererPuce() {
-    const ta  = document.getElementById('corps');
-    const pos = ta.selectionStart;
-    ta.value  = ta.value.substring(0, pos) + '\n• ' + ta.value.substring(pos);
-    ta.focus();
+function retirerContact(id) {
+  delete selectedContacts[id];
+  const item = document.querySelector('.contact-item[data-id="' + id + '"]');
+  if (item) {
+    item.classList.remove('selected');
+    const check = document.getElementById('check-' + id);
+    if (check) check.style.display = 'none';
   }
+  renderTags();
+  updateLabelEnvoi();
+}
 
-  function afficherFichier(input) {
-    const nom = input.files[0] ? input.files[0].name : '';
-    document.getElementById('nom-fichier').textContent = nom ? '📎 ' + nom : '';
+document.getElementById('search-contact') && document.getElementById('search-contact').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('.contact-item').forEach(item => {
+    const match = item.dataset.nom.toLowerCase().includes(q) ||
+                  item.dataset.email.toLowerCase().includes(q) ||
+                  (item.dataset.ville || '').toLowerCase().includes(q);
+    item.style.display = match ? 'flex' : 'none';
+  });
+});
+
+document.getElementById('btn-tout-selectionner') && document.getElementById('btn-tout-selectionner').addEventListener('click', function(e) {
+  e.preventDefault();
+  document.querySelectorAll('.contact-item').forEach(item => {
+    if (item.style.display !== 'none' && !selectedContacts[item.dataset.id]) {
+      item.click();
+    }
+  });
+});
+
+// ── LABEL ENVOI ──────────────────────────────
+function updateLabelEnvoi() {
+  const label = document.getElementById('label-envoi');
+  if (!label) return;
+  if (modeActuel === 'individuel') {
+    const n = Object.keys(selectedContacts).length;
+    label.textContent = n > 0 ? 'à ' + n + ' contact(s) sélectionné(s)' : '(sélectionnez des contacts)';
+  } else {
+    const actif = document.querySelector('.filtre-card.active');
+    if (actif) {
+      const val = actif.querySelector('input').value;
+      label.textContent = val === 'tous' ? 'à tous les membres actifs' : 'aux membres filtrés';
+    }
   }
+}
+
+// ── FORMATAGE ────────────────────────────────
+function inserer(avant, apres) {
+  const ta = document.getElementById('corps');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.substring(0, s) + avant + ta.value.substring(s, e) + apres + ta.value.substring(e);
+  ta.focus(); ta.selectionStart = s + avant.length; ta.selectionEnd = e + avant.length;
+  updateCounter();
+}
+function insererLigne() {
+  const ta = document.getElementById('corps'), p = ta.selectionStart;
+  ta.value = ta.value.substring(0, p) + '
+---
+' + ta.value.substring(p);
+  ta.focus(); updateCounter();
+}
+function insererPuce() {
+  const ta = document.getElementById('corps'), p = ta.selectionStart;
+  ta.value = ta.value.substring(0, p) + '
+• ' + ta.value.substring(p);
+  ta.focus(); updateCounter();
+}
+function insererSignature() {
+  const ta = document.getElementById('corps');
+  ta.value += '
+
+Cordialement,
+Le Bureau de l'AKF';
+  ta.focus(); updateCounter();
+}
+function updateCounter() {
+  const el = document.getElementById('char-count');
+  if (el) el.textContent = document.getElementById('corps').value.length;
+}
+
+// ── FICHIER ───────────────────────────────────
+function afficherFichier(input) {
+  const el = document.getElementById('nom-fichier');
+  if (el) el.textContent = input.files[0] ? input.files[0].name : '';
+}
+
+// ── CONFIRMATION ─────────────────────────────
+function confirmerEnvoi() {
+  let dest = '';
+  if (modeActuel === 'individuel') {
+    const n = Object.keys(selectedContacts).length;
+    if (n === 0) { alert('Veuillez sélectionner au moins un contact.'); return false; }
+    dest = n + ' contact(s)';
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'mode_envoi'; inp.value = 'individuel';
+    document.getElementById('form-email').appendChild(inp);
+  } else {
+    dest = 'les membres filtrés';
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'mode_envoi'; inp.value = 'groupe';
+    document.getElementById('form-email').appendChild(inp);
+  }
+  return confirm('Envoyer cet email à ' + dest + ' ?
+
+Cette action est irréversible.');
+}
+
+// ── MODÈLES ───────────────────────────────────
+const modeles = {
+  ag: {
+    sujet: "[AKF] Convocation AG 2026",
+    corps: "Bonjour,
+
+Nous avons le plaisir de vous convoquer a l'AG de l'AKF.
+
+Date : [a completer]
+Lieu : [a completer]
+
+Ordre du jour :
+- Rapport moral
+- Rapport financier
+- Questions diverses
+
+Cordialement,
+Le Bureau de l'AKF"
+  },
+  cotisation: {
+    sujet: "[AKF] Rappel cotisation",
+    corps: "Bonjour,
+
+Votre cotisation mensuelle n'a pas encore ete enregistree.
+
+Montant : 5 EUR (etudiant) ou 10 EUR (actif)
+
+Merci de regulariser.
+
+Cordialement,
+Le Bureau de l'AKF"
+  },
+  evenement: {
+    sujet: "[AKF] Annonce evenement",
+    corps: "Bonjour,
+
+Nous vous annoncons un prochain evenement.
+
+Date : [a completer]
+Lieu : [a completer]
+
+Nous vous attendons nombreux !
+
+Cordialement,
+Le Bureau de l'AKF"
+  },
+  bienvenue: {
+    sujet: "[AKF] Bienvenue !",
+    corps: "Bonjour,
+
+Votre adhesion a ete validee. Bienvenue dans l'AKF !
+
+Cordialement,
+Le Bureau de l'AKF"
+  }
+};
+
+function chargerModele(type) {
+  const m = modeles[type];
+  if (!m) return;
+  document.getElementById('sujet').value = m.sujet;
+  document.getElementById('corps').value = m.corps;
+  updateCounter();
+}
 </script>
 {% endblock %}

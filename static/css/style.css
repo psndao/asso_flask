@@ -775,3 +775,143 @@ ul { list-style: none; }
   color:var(--green) !important;
   font-weight:600 !important;
 }
+
+
+
+/* ═══════════════════════════════════════════════
+   HERO PLEIN ÉCRAN — OVERRIDE
+════════════════════════════════════════════════ */
+
+/* Le hero plein écran remplace complètement le hero standard */
+.hero-fullscreen {
+  position: relative !important;
+  height: 100vh !important;
+  min-height: 600px !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+}
+
+/* Les slides occupent tout l'espace */
+.hero-slides {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+}
+
+.hero-slide {
+  position: absolute !important;
+  inset: 0 !important;
+  opacity: 0 !important;
+  transition: opacity 1.2s ease !important;
+}
+
+.hero-slide.active { opacity: 1 !important; }
+
+.hero-slide img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  max-width: none !important;
+  animation: kenBurns 8s ease forwards !important;
+}
+
+/* Overlay */
+.hero-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  background: linear-gradient(
+    135deg,
+    rgba(10,50,28,.85) 0%,
+    rgba(26,122,74,.55) 50%,
+    rgba(10,50,28,.75) 100%
+  ) !important;
+}
+
+/* Contenu centré */
+.hero-content {
+  position: relative !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  max-width: 900px !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+  padding: 0 2rem !important;
+}
+
+/* Navigation dots */
+.hero-nav {
+  position: absolute !important;
+  bottom: 2rem !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 3 !important;
+  display: flex !important;
+  gap: .6rem !important;
+  align-items: center !important;
+}
+
+.hero-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 99px !important;
+  background: rgba(255,255,255,.4) !important;
+  cursor: pointer !important;
+  transition: all .3s !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.hero-dot.active {
+  background: #fff !important;
+  width: 28px !important;
+}
+
+/* Barre progression */
+.hero-progress {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 3px !important;
+  z-index: 3 !important;
+  background: rgba(255,255,255,.15) !important;
+}
+
+.hero-progress-bar {
+  height: 100% !important;
+  background: #4ade80 !important;
+}
+
+/* Flèche scroll */
+.hero-scroll {
+  position: absolute !important;
+  bottom: 4rem !important;
+  right: 3rem !important;
+  z-index: 3 !important;
+  color: rgba(255,255,255,.6) !important;
+  font-size: 1.5rem !important;
+  cursor: pointer !important;
+}
+
+@keyframes kenBurns {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+
+@keyframes slideProgress {
+  from { width: 0% }
+  to   { width: 100% }
+}
+
+@media (max-width: 768px) {
+  .hero-fullscreen { height: 100svh !important; }
+  .hero-content { padding: 0 1.5rem !important; }
+  .hero-scroll { display: none !important; }
+}
