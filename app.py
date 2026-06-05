@@ -599,9 +599,16 @@ def admin_dashboard():
     "projets":    Projet.query.count(),
     "actualites": Actualite.query.count(),
     "bureau":     MembreBureau.query.count(),
-    # ← AJOUTER CES DEUX LIGNES :
-    "cot_payes":  Cotisation.query.filter_by(mois=datetime.now().month, annee=datetime.now().year, statut="paye").count(),
-    "cot_attente": Cotisation.query.filter_by(mois=datetime.now().month, annee=datetime.now().year, statut="en_attente").count(),
+    "cot_payes":  Cotisation.query.filter_by(
+                    mois=datetime.now().month,
+                    annee=datetime.now().year,
+                    statut="paye"
+                  ).count(),
+    "cot_attente": Cotisation.query.filter_by(
+                    mois=datetime.now().month,
+                    annee=datetime.now().year,
+                    statut="en_attente"
+                  ).count(),
 }
     return render_template("admin/dashboard.html", asso=ASSO, stats=stats, now=datetime.now())
 
