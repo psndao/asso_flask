@@ -1611,6 +1611,29 @@ def init_db():
     with app.app_context():
         db.create_all()
 
+        # ── Migration colonnes cotisation ──────────
+        from sqlalchemy import text, inspect
+        inspector = inspect(db.engine)
+        colonnes_existantes = [c['name'] for c in inspector.get_columns('cotisation')]
+
+        migrations = [
+            ("justificatif",   "ALTER TABLE cotisation ADD COLUMN justificatif VARCHAR(200)"),
+            ("rappel1_envoye", "ALTER TABLE cotisation ADD COLUMN rappel1_envoye BOOLEAN DEFAULT false"),
+            ("rappel2_envoye", "ALTER TABLE cotisation ADD COLUMN rappel2_envoye BOOLEAN DEFAULT false"),
+            ("alerte_envoye",  "ALTER TABLE cotisation ADD COLUMN alerte_envoye BOOLEAN DEFAULT false"),
+        ]
+
+        with db.engine.connect() as conn:
+            for colonne, sql in migrations:
+                if colonne not in colonnes_existantes:
+                    try:
+                        conn.execute(text(sql))
+                        conn.commit()
+                        print(f"✅ Colonne '{colonne}' ajoutée")
+                    except Exception as e:
+                        print(f"⚠️ {colonne}: {e}")
+        # ── Fin migration ──────────────────────────
+
         # Admin par défaut
         if not AdminUser.query.filter_by(username="admin").first():
             a = AdminUser(username="admin")
@@ -1700,7 +1723,6 @@ def init_db():
                         if Adhesion.query.filter_by(email=email).first():
                             continue
 
-                        # Séparer prénom / nom
                         parts = nom_complet.split()
                         if len(parts) >= 2:
                             prenom = parts[0]
@@ -1709,7 +1731,6 @@ def init_db():
                             prenom = nom_complet
                             nom    = ""
 
-                        # Nettoyer le téléphone
                         try:
                             if 'E' in telephone.upper():
                                 telephone = str(int(float(telephone)))
