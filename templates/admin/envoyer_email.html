@@ -204,7 +204,7 @@
     <div style="padding:1.5rem">
 
       <form method="POST" action="{{ url_for('admin_envoyer_email') }}" id="form-email"
-            onsubmit="return validerEnvoi()">
+            enctype="multipart/form-data" onsubmit="return validerEnvoi()">
 
         <input type="hidden" name="destinataires_ids" id="dest-ids">
 
