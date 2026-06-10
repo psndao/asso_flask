@@ -28,7 +28,7 @@ app.config["MAIL_USE_SSL"]        = True
 app.config["MAIL_USERNAME"]       = os.environ.get("MAIL_USERNAME", "contact@koungheulois-france.fr")
 app.config["MAIL_PASSWORD"]       = os.environ.get("MAIL_PASSWORD", "@Akf202626")
 app.config["MAIL_DEFAULT_SENDER"] = ("AKF", "contact@koungheulois-france.fr")
-app.config["MAIL_TIMEOUT"]        = 5
+app.config["MAIL_TIMEOUT"]        = 10
 mail = Mail(app)
 
 def send_mail_safe(msg):
