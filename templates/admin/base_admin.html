@@ -157,10 +157,9 @@
       <i class="fa-solid fa-calendar-days"></i> Événements
     </a>
     <div class="nav-section">Communication</div>
-    
     <a href="{{ url_for('admin_envoyer_email') }}" class="{{ 'active' if request.endpoint == 'admin_envoyer_email' }}">
-  <i class="fa-solid fa-envelope-open-text"></i> Envoyer un email
-</a>
+      <i class="fa-solid fa-envelope-open-text"></i> Envoyer un email
+    </a>
     <div class="nav-section">Site</div>
     <a href="{{ url_for('index') }}" target="_blank">
       <i class="fa-solid fa-arrow-up-right-from-square"></i> Voir le site

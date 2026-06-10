@@ -39,7 +39,17 @@
         <td>{{ d.email or '–' }}</td>
         <td><strong>{{ "%.2f"|format(d.montant) }}</strong></td>
         <td>{{ d.devise }}</td>
-        <td><span class="badge badge-green">Reçu</span></td>
+        <td>
+          {% if d.statut == 'complete' or d.statut == 'paye' %}
+            <span class="badge badge-green"><i class="fa-solid fa-check"></i> Reçu</span>
+          {% elif d.statut == 'en_attente' %}
+            <span class="badge badge-orange"><i class="fa-solid fa-clock"></i> En attente</span>
+          {% elif d.statut == 'echoue' %}
+            <span class="badge badge-red"><i class="fa-solid fa-xmark"></i> Échoué</span>
+          {% else %}
+            <span class="badge badge-gray">{{ d.statut }}</span>
+          {% endif %}
+        </td>
         <td style="font-size:.78rem;color:#6b7280">{{ d.date_creation.strftime('%d/%m/%Y %H:%M') }}</td>
       </tr>
       {% else %}

@@ -42,7 +42,7 @@
         <label>Photo</label>
         {% if membre and membre.photo %}
           <div style="margin-bottom:.75rem;display:flex;align-items:center;gap:1rem">
-            <img src="{{ url_for('static', filename='img/' + membre.photo) if not '/' in membre.photo else url_for('static', filename='uploads/' + membre.photo) }}"
+            <img src="{{ url_for('static', filename='uploads/' + membre.photo) if membre.photo|length > 20 else url_for('static', filename='img/' + membre.photo) }}"
                  style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" />
             <p style="font-size:.8rem;color:#6b7280">Photo actuelle — uploader une nouvelle pour la remplacer</p>
           </div>

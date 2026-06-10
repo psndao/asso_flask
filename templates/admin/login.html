@@ -23,7 +23,11 @@
     .input-wrap input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,122,74,.1); }
     .btn-login { width: 100%; background: var(--green); color: #fff; border: none; padding: .85rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: center; gap: .6rem; }
     .btn-login:hover { background: var(--green-dark); }
-    .flash { padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1.25rem; font-size: .88rem; background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+    .flash         { padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1.25rem; font-size: .88rem; }
+    .flash-danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+    .flash-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+    .flash-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+    .flash-info    { background: #eff6ff; color: #1d4ed8; border-left: 4px solid #3b82f6; }
     .back-link { text-align: center; margin-top: 1.5rem; font-size: .82rem; }
     .back-link a { color: var(--green); text-decoration: none; }
     .back-link a:hover { text-decoration: underline; }
@@ -38,7 +42,7 @@
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}
-        <div class="flash">{{ msg }}</div>
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
       {% endfor %}
     {% endwith %}
 

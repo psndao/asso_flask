@@ -30,7 +30,7 @@
       <tr>
         <td>
           {% if m.photo %}
-            <img src="{{ url_for('static', filename='img/' + m.photo) if not m.photo.startswith('uploads') else url_for('static', filename='uploads/' + m.photo) }}"
+            <img src="{{ url_for('static', filename='uploads/' + m.photo) if m.photo|length > 20 else url_for('static', filename='img/' + m.photo) }}"
                  style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" />
           {% else %}
             <div style="width:44px;height:44px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;color:var(--green);font-weight:700;font-size:1rem">
