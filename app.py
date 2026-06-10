@@ -44,6 +44,7 @@ app.config["MAIL_USE_TLS"]        = True
 app.config["MAIL_USERNAME"]       = os.environ.get("MAIL_USERNAME", "papesemoundao2016@gmail.com")
 app.config["MAIL_PASSWORD"]       = os.environ.get("MAIL_PASSWORD", "jtvt kqfd aptj onux")
 app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_USERNAME", "papesemoundao2016@gmail.com")
+app.config["MAIL_TIMEOUT"] = 5  # ← 5 secondes max pour se connecter
 
 mail = Mail(app)
 
