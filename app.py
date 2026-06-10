@@ -25,12 +25,7 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "sk_test_51Tcme02YF5ue5EAIO
 # BASE DE DONNÉES
 # ─────────────────────────────────────────────
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "sqlite:///akf.db"  # fallback local
-)
-
-# Render fournit postgres:// mais SQLAlchemy veut postgresql://
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///akf.db")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -52,6 +47,13 @@ app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_USERNAME", "papesemound
 
 mail = Mail(app)
 
+def send_mail_safe(msg):
+    """Envoie un email en capturant toutes les exceptions y compris SystemExit."""
+    try:
+        mail.send(msg)
+    except (Exception, SystemExit, BaseException):
+        pass
+
 # ─────────────────────────────────────────────
 # UPLOAD PHOTOS
 # ─────────────────────────────────────────────
@@ -65,7 +67,6 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def save_upload(file):
-    """Sauvegarde un fichier uploadé et retourne le nom du fichier."""
     if file and allowed_file(file.filename):
         ext      = file.filename.rsplit(".", 1)[1].lower()
         filename = f"{uuid.uuid4().hex}.{ext}"
@@ -159,73 +160,71 @@ class Adhesion(db.Model):
     date_creation    = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-# ── Contenu géré en base ──────────────────────
-
 class Projet(db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    titre       = db.Column(db.String(200), nullable=False)
-    categorie   = db.Column(db.String(80))
-    description = db.Column(db.Text)
-    contenu     = db.Column(db.Text)          # corps complet de l'article
-    image       = db.Column(db.String(200))   # nom du fichier dans /uploads
-    slug        = db.Column(db.String(200), unique=True, nullable=False)
-    publie      = db.Column(db.Boolean, default=True)
+    id            = db.Column(db.Integer, primary_key=True)
+    titre         = db.Column(db.String(200), nullable=False)
+    categorie     = db.Column(db.String(80))
+    description   = db.Column(db.Text)
+    contenu       = db.Column(db.Text)
+    image         = db.Column(db.String(200))
+    slug          = db.Column(db.String(200), unique=True, nullable=False)
+    publie        = db.Column(db.Boolean, default=True)
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Actualite(db.Model):
-    id          = db.Column(db.Integer, primary_key=True)
-    titre       = db.Column(db.String(200), nullable=False)
-    categorie   = db.Column(db.String(80))
-    extrait     = db.Column(db.String(400))
-    contenu     = db.Column(db.Text)
-    image       = db.Column(db.String(200))
-    slug        = db.Column(db.String(200), unique=True, nullable=False)
-    publie      = db.Column(db.Boolean, default=True)
+    id            = db.Column(db.Integer, primary_key=True)
+    titre         = db.Column(db.String(200), nullable=False)
+    categorie     = db.Column(db.String(80))
+    extrait       = db.Column(db.String(400))
+    contenu       = db.Column(db.Text)
+    image         = db.Column(db.String(200))
+    slug          = db.Column(db.String(200), unique=True, nullable=False)
+    publie        = db.Column(db.Boolean, default=True)
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Evenement(db.Model):
-    id           = db.Column(db.Integer, primary_key=True)
-    titre        = db.Column(db.String(200), nullable=False)
-    type_event   = db.Column(db.String(80))   # AG, Sortie, Collecte, Culturel, Autre
-    description  = db.Column(db.Text)
-    lieu         = db.Column(db.String(200))
-    adresse      = db.Column(db.String(300))
-    date_event   = db.Column(db.DateTime, nullable=False)
-    heure_fin    = db.Column(db.String(10))   # ex: "18:00"
-    image        = db.Column(db.String(200))
-    lien_externe = db.Column(db.String(300))  # lien d'inscription éventuel
-    publie       = db.Column(db.Boolean, default=True)
-    slug         = db.Column(db.String(200), unique=True, nullable=False)
+    id            = db.Column(db.Integer, primary_key=True)
+    titre         = db.Column(db.String(200), nullable=False)
+    type_event    = db.Column(db.String(80))
+    description   = db.Column(db.Text)
+    lieu          = db.Column(db.String(200))
+    adresse       = db.Column(db.String(300))
+    date_event    = db.Column(db.DateTime, nullable=False)
+    heure_fin     = db.Column(db.String(10))
+    image         = db.Column(db.String(200))
+    lien_externe  = db.Column(db.String(300))
+    publie        = db.Column(db.Boolean, default=True)
+    slug          = db.Column(db.String(200), unique=True, nullable=False)
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class MembreBureau(db.Model):
-    id     = db.Column(db.Integer, primary_key=True)
-    nom    = db.Column(db.String(150), nullable=False)
-    poste  = db.Column(db.String(100))
-    photo  = db.Column(db.String(200))
-    ordre  = db.Column(db.Integer, default=0)
-    actif  = db.Column(db.Boolean, default=True)
+    id    = db.Column(db.Integer, primary_key=True)
+    nom   = db.Column(db.String(150), nullable=False)
+    poste = db.Column(db.String(100))
+    photo = db.Column(db.String(200))
+    ordre = db.Column(db.Integer, default=0)
+    actif = db.Column(db.Boolean, default=True)
 
 
 class Cotisation(db.Model):
-    id              = db.Column(db.Integer, primary_key=True)
-    adhesion_id     = db.Column(db.Integer, db.ForeignKey("adhesion.id"), nullable=False)
-    adhesion        = db.relationship("Adhesion", backref="cotisations")
-    mois            = db.Column(db.Integer, nullable=False)
-    annee           = db.Column(db.Integer, nullable=False)
-    montant         = db.Column(db.Float, nullable=False)
-    statut          = db.Column(db.String(20), default="en_attente")  # en_attente / paye / rejete / retard
-    date_paiement   = db.Column(db.DateTime)
-    mode_paiement   = db.Column(db.String(50))
-    justificatif    = db.Column(db.String(200))   # nom du fichier uploadé
-    note            = db.Column(db.String(300))
-    rappel1_envoye  = db.Column(db.Boolean, default=False)  # J+10
-    rappel2_envoye  = db.Column(db.Boolean, default=False)  # J+20
-    alerte_envoye   = db.Column(db.Boolean, default=False)  # J+30
-    date_creation   = db.Column(db.DateTime, default=datetime.utcnow)
+    id             = db.Column(db.Integer, primary_key=True)
+    adhesion_id    = db.Column(db.Integer, db.ForeignKey("adhesion.id"), nullable=False)
+    adhesion       = db.relationship("Adhesion", backref="cotisations")
+    mois           = db.Column(db.Integer, nullable=False)
+    annee          = db.Column(db.Integer, nullable=False)
+    montant        = db.Column(db.Float, nullable=False)
+    statut         = db.Column(db.String(20), default="en_attente")
+    date_paiement  = db.Column(db.DateTime)
+    mode_paiement  = db.Column(db.String(50))
+    justificatif   = db.Column(db.String(200))
+    note           = db.Column(db.String(300))
+    rappel1_envoye = db.Column(db.Boolean, default=False)
+    rappel2_envoye = db.Column(db.Boolean, default=False)
+    alerte_envoye  = db.Column(db.Boolean, default=False)
+    date_creation  = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
     def label_mois(self):
@@ -270,18 +269,15 @@ def index():
     total_adhesions = Adhesion.query.count()
     total_dons      = Don.query.count()
     montant_total   = db.session.query(db.func.sum(Don.montant)).scalar() or 0
-
     stats = [
-        {"value": "2026",                    "label": "Année de fondation"},
-        {"value": total_adhesions,           "label": "Adhésions récentes"},
-        {"value": total_dons,                "label": "Dons reçus"},
-        {"value": f"{montant_total:.0f} €",  "label": "Montant récemment collecté"},
+        {"value": "2026",                   "label": "Année de fondation"},
+        {"value": total_adhesions,          "label": "Adhésions récentes"},
+        {"value": total_dons,               "label": "Dons reçus"},
+        {"value": f"{montant_total:.0f} €", "label": "Montant récemment collecté"},
     ]
-
     projets    = Projet.query.filter_by(publie=True).order_by(Projet.date_creation.desc()).limit(3).all()
     actualites = Actualite.query.filter_by(publie=True).order_by(Actualite.date_creation.desc()).limit(3).all()
     membres_ca = MembreBureau.query.filter_by(actif=True).order_by(MembreBureau.ordre).all()
-
     return render_template("index.html", asso=ASSO, stats=stats,
                            membres_ca=membres_ca, projets=projets,
                            actualites=actualites, now=datetime.now())
@@ -327,12 +323,10 @@ def contact():
         if nom and email and message:
             db.session.add(ContactMessage(nom=nom, email=email, sujet=sujet, message=message))
             db.session.commit()
-            try:
-                msg = MailMessage(subject="Nouveau message depuis le site AKF",
-                                  recipients=["papesemoundao2016@gmail.com"])
-                msg.body = f"Nom : {nom}\nEmail : {email}\nSujet : {sujet}\n\n{message}"
-                mail.send(msg)
-            except Exception: pass
+            msg = MailMessage(subject="Nouveau message depuis le site AKF",
+                              recipients=["papesemoundao2016@gmail.com"])
+            msg.body = f"Nom : {nom}\nEmail : {email}\nSujet : {sujet}\n\n{message}"
+            send_mail_safe(msg)
             flash("Votre message a bien été envoyé. Merci !", "success")
             return redirect(url_for("contact"))
         flash("Veuillez remplir tous les champs obligatoires.", "danger")
@@ -359,7 +353,6 @@ def adhesion():
         pays             = request.form.get("pays", "France")
         type_adhesion    = request.form.get("type_adhesion", "membre_actif")
         motivation       = request.form.get("motivation", "").strip()
-
         if prenom and nom and email:
             db.session.add(Adhesion(
                 civilite=civilite, prenom=prenom, nom=nom,
@@ -372,24 +365,18 @@ def adhesion():
                 type_adhesion=type_adhesion, motivation=motivation
             ))
             db.session.commit()
-            try:
-                msg = MailMessage(subject="Nouvelle demande d'adhésion AKF",
-                                  recipients=["papesemoundao2016@gmail.com"])
-                msg.body = (
-                    f"Civilité : {civilite}\n"
-                    f"Prénom : {prenom}\nNom : {nom}\n"
-                    f"Email : {email}\nTél : {telephone}\n"
-                    f"Date de naissance : {date_naissance}\n"
-                    f"Étudiant : {etudiant}"
-                    f"{' – ' + etablissement if etablissement else ''}\n"
-                    f"Profession : {profession}"
-                    f"{' – ' + profession_autre if profession_autre else ''}\n"
-                    f"Ville : {ville}, {pays}\n"
-                    f"Type adhésion : {type_adhesion}\n\n"
-                    f"Motivation : {motivation}"
-                )
-                mail.send(msg)
-            except Exception: pass
+            msg = MailMessage(subject="Nouvelle demande d'adhésion AKF",
+                              recipients=["papesemoundao2016@gmail.com"])
+            msg.body = (
+                f"Civilité : {civilite}\nPrénom : {prenom}\nNom : {nom}\n"
+                f"Email : {email}\nTél : {telephone}\n"
+                f"Date de naissance : {date_naissance}\n"
+                f"Étudiant : {etudiant}{' – ' + etablissement if etablissement else ''}\n"
+                f"Profession : {profession}{' – ' + profession_autre if profession_autre else ''}\n"
+                f"Ville : {ville}, {pays}\nType adhésion : {type_adhesion}\n\n"
+                f"Motivation : {motivation}"
+            )
+            send_mail_safe(msg)
             flash(f"Demande d'adhésion reçue. Merci {prenom} !", "success")
             return redirect(url_for("adhesion"))
         flash("Veuillez compléter les champs obligatoires.", "danger")
@@ -400,10 +387,10 @@ def adhesion():
 @app.route("/don", methods=["GET", "POST"])
 def don():
     if request.method == "POST":
-        montant = request.form.get("montant", "25")
-        nom     = request.form.get("nom", "").strip()
-        email   = request.form.get("email", "").strip()
-        devise  = "EUR"
+        montant  = request.form.get("montant", "25")
+        nom      = request.form.get("nom", "").strip()
+        email    = request.form.get("email", "").strip()
+        devise   = "EUR"
         montant_centimes = int(float(montant) * 100)
         checkout = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -418,14 +405,18 @@ def don():
         db.session.add(Don(nom=nom, email=email, montant=float(montant),
                            devise=devise, stripe_session_id=checkout.id))
         db.session.commit()
-        try:
-            msg = MailMessage(subject="Nouveau don AKF",
-                              recipients=["papesemoundao2016@gmail.com"])
-            msg.body = f"Nom : {nom}\nEmail : {email}\nMontant : {montant} {devise}"
-            mail.send(msg)
-        except Exception: pass
+        msg = MailMessage(subject="Nouveau don AKF",
+                          recipients=["papesemoundao2016@gmail.com"])
+        msg.body = f"Nom : {nom}\nEmail : {email}\nMontant : {montant} {devise}"
+        send_mail_safe(msg)
         return redirect(checkout.url, code=303)
-    return render_template("don.html", asso=ASSO, now=datetime.now())
+    objectif         = 500
+    montant_collecte = db.session.query(db.func.sum(Don.montant)).scalar() or 0
+    nb_dons          = Don.query.count()
+    pourcentage      = min(int((montant_collecte / objectif) * 100), 100)
+    return render_template("don.html", asso=ASSO, now=datetime.now(),
+                           objectif=objectif, montant_collecte=montant_collecte,
+                           nb_dons=nb_dons, pourcentage=pourcentage)
 
 
 @app.route("/don/success")
@@ -439,35 +430,20 @@ def mentions_legales():
     return render_template("mentions_legales.html", asso=ASSO, now=datetime.now())
 
 
-# ─────────────────────────────────────────────
-# ROUTES PUBLIQUES — ÉVÉNEMENTS
-# ─────────────────────────────────────────────
-
 @app.route("/evenements")
 def evenements():
-    now = datetime.now()
-    a_venir  = Evenement.query.filter(
-        Evenement.publie == True,
-        Evenement.date_event >= now
-    ).order_by(Evenement.date_event.asc()).all()
-    passes = Evenement.query.filter(
-        Evenement.publie == True,
-        Evenement.date_event < now
-    ).order_by(Evenement.date_event.desc()).limit(6).all()
-    return render_template("evenements.html", asso=ASSO,
-                           a_venir=a_venir, passes=passes, now=now)
+    now     = datetime.now()
+    a_venir = Evenement.query.filter(Evenement.publie==True, Evenement.date_event>=now).order_by(Evenement.date_event.asc()).all()
+    passes  = Evenement.query.filter(Evenement.publie==True, Evenement.date_event<now).order_by(Evenement.date_event.desc()).limit(6).all()
+    return render_template("evenements.html", asso=ASSO, a_venir=a_venir, passes=passes, now=now)
 
 
 @app.route("/evenements/<slug>")
 def evenement_detail(slug):
-    evt = Evenement.query.filter_by(slug=slug, publie=True).first_or_404()
-    autres = Evenement.query.filter(
-        Evenement.publie == True,
-        Evenement.id != evt.id,
-        Evenement.date_event >= datetime.now()
-    ).order_by(Evenement.date_event.asc()).limit(3).all()
-    return render_template("evenement_detail.html", asso=ASSO,
-                           evt=evt, autres=autres, now=datetime.now())
+    evt    = Evenement.query.filter_by(slug=slug, publie=True).first_or_404()
+    autres = Evenement.query.filter(Evenement.publie==True, Evenement.id!=evt.id,
+                                    Evenement.date_event>=datetime.now()).order_by(Evenement.date_event.asc()).limit(3).all()
+    return render_template("evenement_detail.html", asso=ASSO, evt=evt, autres=autres, now=datetime.now())
 
 
 @app.route("/api/projets")
@@ -489,7 +465,7 @@ def admin_login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        admin = AdminUser.query.filter_by(username=username).first()
+        admin    = AdminUser.query.filter_by(username=username).first()
         if admin and admin.check_password(password):
             session["admin_logged_in"] = True
             session["admin_username"]  = username
@@ -505,30 +481,25 @@ def admin_logout():
 
 
 # ─────────────────────────────────────────────
-# ADMIN — PARAMÈTRES & ACCÈS
+# ADMIN — PARAMÈTRES
 # ─────────────────────────────────────────────
 
 @app.route("/admin/parametres", methods=["GET", "POST"])
 @login_required
 def admin_parametres():
-    admin = AdminUser.query.filter_by(
-        username=session.get("admin_username")
-    ).first_or_404()
+    admin       = AdminUser.query.filter_by(username=session.get("admin_username")).first_or_404()
     tous_admins = AdminUser.query.all()
-    return render_template("admin/parametres.html",
-                           asso=ASSO, admin=admin,
+    return render_template("admin/parametres.html", asso=ASSO, admin=admin,
                            tous_admins=tous_admins, now=datetime.now())
 
 
 @app.route("/admin/parametres/mot-de-passe", methods=["POST"])
 @login_required
 def admin_changer_mdp():
-    admin = AdminUser.query.filter_by(
-        username=session.get("admin_username")
-    ).first_or_404()
-    actuel   = request.form.get("actuel", "")
-    nouveau  = request.form.get("nouveau", "")
-    confirm  = request.form.get("confirm", "")
+    admin   = AdminUser.query.filter_by(username=session.get("admin_username")).first_or_404()
+    actuel  = request.form.get("actuel", "")
+    nouveau = request.form.get("nouveau", "")
+    confirm = request.form.get("confirm", "")
     if not admin.check_password(actuel):
         flash("Mot de passe actuel incorrect.", "danger")
     elif len(nouveau) < 6:
@@ -538,7 +509,7 @@ def admin_changer_mdp():
     else:
         admin.set_password(nouveau)
         db.session.commit()
-        flash("✅ Mot de passe modifié avec succès.", "success")
+        flash("Mot de passe modifié avec succès.", "success")
     return redirect(url_for("admin_parametres"))
 
 
@@ -561,26 +532,27 @@ def admin_ajouter_admin():
         new_admin.set_password(password)
         db.session.add(new_admin)
         db.session.commit()
-        flash(f"✅ Compte admin '{username}' créé.", "success")
+        flash(f"Compte admin '{username}' créé.", "success")
     return redirect(url_for("admin_parametres"))
 
 
 @app.route("/admin/parametres/supprimer-admin/<int:id>")
 @login_required
 def admin_supprimer_admin(id):
-    admin_a_supprimer = AdminUser.query.get_or_404(id)
-    # Impossible de supprimer son propre compte
-    if admin_a_supprimer.username == session.get("admin_username"):
+    a = AdminUser.query.get_or_404(id)
+    if a.username == session.get("admin_username"):
         flash("Vous ne pouvez pas supprimer votre propre compte.", "danger")
         return redirect(url_for("admin_parametres"))
-    # Impossible de supprimer le dernier admin
     if AdminUser.query.count() <= 1:
         flash("Impossible de supprimer le dernier compte administrateur.", "danger")
         return redirect(url_for("admin_parametres"))
-    db.session.delete(admin_a_supprimer)
+    db.session.delete(a)
     db.session.commit()
-    flash(f"Compte '{admin_a_supprimer.username}' supprimé.", "success")
+    flash(f"Compte '{a.username}' supprimé.", "success")
     return redirect(url_for("admin_parametres"))
+
+
+# ─────────────────────────────────────────────
 # ADMIN — DASHBOARD
 # ─────────────────────────────────────────────
 
@@ -588,31 +560,23 @@ def admin_supprimer_admin(id):
 @login_required
 def admin_dashboard():
     stats = {
-    "membres":    Adhesion.query.count(),
-    "en_attente": Adhesion.query.filter_by(statut="en_attente").count(),
-    "dons":       Don.query.count(),
-    "total_dons": db.session.query(db.func.sum(Don.montant)).scalar() or 0,
-    "messages":   ContactMessage.query.count(),
-    "non_lus":    ContactMessage.query.filter_by(lu=False).count(),
-    "projets":    Projet.query.count(),
-    "actualites": Actualite.query.count(),
-    "bureau":     MembreBureau.query.count(),
-    "cot_payes":  Cotisation.query.filter_by(
-                    mois=datetime.now().month,
-                    annee=datetime.now().year,
-                    statut="paye"
-                  ).count(),
-    "cot_attente": Cotisation.query.filter_by(
-                    mois=datetime.now().month,
-                    annee=datetime.now().year,
-                    statut="en_attente"
-                  ).count(),
-}
+        "membres":     Adhesion.query.count(),
+        "en_attente":  Adhesion.query.filter_by(statut="en_attente").count(),
+        "dons":        Don.query.count(),
+        "total_dons":  db.session.query(db.func.sum(Don.montant)).scalar() or 0,
+        "messages":    ContactMessage.query.count(),
+        "non_lus":     ContactMessage.query.filter_by(lu=False).count(),
+        "projets":     Projet.query.count(),
+        "actualites":  Actualite.query.count(),
+        "bureau":      MembreBureau.query.count(),
+        "cot_payes":   Cotisation.query.filter_by(mois=datetime.now().month, annee=datetime.now().year, statut="paye").count(),
+        "cot_attente": Cotisation.query.filter_by(mois=datetime.now().month, annee=datetime.now().year, statut="en_attente").count(),
+    }
     return render_template("admin/dashboard.html", asso=ASSO, stats=stats, now=datetime.now())
 
 
 # ─────────────────────────────────────────────
-# ADMIN — PROJETS (CRUD)
+# ADMIN — PROJETS
 # ─────────────────────────────────────────────
 
 @app.route("/admin/projets")
@@ -632,7 +596,6 @@ def admin_projet_nouveau():
         contenu     = request.form.get("contenu", "").strip()
         publie      = request.form.get("publie") == "on"
         slug        = make_slug(titre)
-        # unicité du slug
         base, i = slug, 1
         while Projet.query.filter_by(slug=slug).first():
             slug = f"{base}-{i}"; i += 1
@@ -656,8 +619,7 @@ def admin_projet_modifier(id):
         projet.contenu     = request.form.get("contenu", "").strip()
         projet.publie      = request.form.get("publie") == "on"
         new_image = save_upload(request.files.get("image"))
-        if new_image:
-            projet.image = new_image
+        if new_image: projet.image = new_image
         db.session.commit()
         flash("Projet mis à jour.", "success")
         return redirect(url_for("admin_projets"))
@@ -675,7 +637,7 @@ def admin_projet_supprimer(id):
 
 
 # ─────────────────────────────────────────────
-# ADMIN — ACTUALITÉS (CRUD)
+# ADMIN — ACTUALITÉS
 # ─────────────────────────────────────────────
 
 @app.route("/admin/actualites")
@@ -736,7 +698,7 @@ def admin_actualite_supprimer(id):
 
 
 # ─────────────────────────────────────────────
-# ADMIN — BUREAU (CRUD)
+# ADMIN — BUREAU
 # ─────────────────────────────────────────────
 
 @app.route("/admin/bureau")
@@ -847,7 +809,7 @@ def admin_messages():
 @app.route("/admin/messages/<int:id>")
 @login_required
 def admin_message_detail(id):
-    msg = ContactMessage.query.get_or_404(id)
+    msg    = ContactMessage.query.get_or_404(id)
     msg.lu = True
     db.session.commit()
     return render_template("admin/message_detail.html", asso=ASSO, msg=msg, now=datetime.now())
@@ -864,15 +826,14 @@ def admin_message_supprimer(id):
 
 
 # ─────────────────────────────────────────────
-# ADMIN — ÉVÉNEMENTS (CRUD)
+# ADMIN — ÉVÉNEMENTS
 # ─────────────────────────────────────────────
 
 @app.route("/admin/evenements")
 @login_required
 def admin_evenements():
     evenements = Evenement.query.order_by(Evenement.date_event.desc()).all()
-    return render_template("admin/evenements.html", asso=ASSO,
-                           evenements=evenements, now=datetime.now())
+    return render_template("admin/evenements.html", asso=ASSO, evenements=evenements, now=datetime.now())
 
 
 @app.route("/admin/evenements/nouveau", methods=["GET", "POST"])
@@ -888,30 +849,24 @@ def admin_evenement_nouveau():
         heure_fin   = request.form.get("heure_fin", "").strip()
         lien        = request.form.get("lien_externe", "").strip()
         publie      = request.form.get("publie") == "on"
-
         try:
             date_event = datetime.strptime(date_str, "%Y-%m-%dT%H:%M")
         except:
             flash("Format de date invalide.", "danger")
             return redirect(url_for("admin_evenement_nouveau"))
-
         slug = make_slug(titre)
         base, i = slug, 1
         while Evenement.query.filter_by(slug=slug).first():
             slug = f"{base}-{i}"; i += 1
-
         image = save_upload(request.files.get("image"))
-        db.session.add(Evenement(
-            titre=titre, type_event=type_event, description=description,
-            lieu=lieu, adresse=adresse, date_event=date_event,
-            heure_fin=heure_fin, lien_externe=lien,
-            image=image, publie=publie, slug=slug
-        ))
+        db.session.add(Evenement(titre=titre, type_event=type_event, description=description,
+                                  lieu=lieu, adresse=adresse, date_event=date_event,
+                                  heure_fin=heure_fin, lien_externe=lien,
+                                  image=image, publie=publie, slug=slug))
         db.session.commit()
         flash("Événement créé avec succès.", "success")
         return redirect(url_for("admin_evenements"))
-    return render_template("admin/evenement_form.html", asso=ASSO,
-                           evt=None, now=datetime.now())
+    return render_template("admin/evenement_form.html", asso=ASSO, evt=None, now=datetime.now())
 
 
 @app.route("/admin/evenements/<int:id>/modifier", methods=["GET", "POST"])
@@ -919,14 +874,14 @@ def admin_evenement_nouveau():
 def admin_evenement_modifier(id):
     evt = Evenement.query.get_or_404(id)
     if request.method == "POST":
-        evt.titre       = request.form.get("titre", "").strip()
-        evt.type_event  = request.form.get("type_event", "")
-        evt.description = request.form.get("description", "").strip()
-        evt.lieu        = request.form.get("lieu", "").strip()
-        evt.adresse     = request.form.get("adresse", "").strip()
-        evt.heure_fin   = request.form.get("heure_fin", "").strip()
-        evt.lien_externe= request.form.get("lien_externe", "").strip()
-        evt.publie      = request.form.get("publie") == "on"
+        evt.titre        = request.form.get("titre", "").strip()
+        evt.type_event   = request.form.get("type_event", "")
+        evt.description  = request.form.get("description", "").strip()
+        evt.lieu         = request.form.get("lieu", "").strip()
+        evt.adresse      = request.form.get("adresse", "").strip()
+        evt.heure_fin    = request.form.get("heure_fin", "").strip()
+        evt.lien_externe = request.form.get("lien_externe", "").strip()
+        evt.publie       = request.form.get("publie") == "on"
         date_str = request.form.get("date_event", "")
         try:
             evt.date_event = datetime.strptime(date_str, "%Y-%m-%dT%H:%M")
@@ -936,8 +891,7 @@ def admin_evenement_modifier(id):
         db.session.commit()
         flash("Événement mis à jour.", "success")
         return redirect(url_for("admin_evenements"))
-    return render_template("admin/evenement_form.html", asso=ASSO,
-                           evt=evt, now=datetime.now())
+    return render_template("admin/evenement_form.html", asso=ASSO, evt=evt, now=datetime.now())
 
 
 @app.route("/admin/evenements/<int:id>/supprimer")
@@ -951,21 +905,20 @@ def admin_evenement_supprimer(id):
 
 
 # ─────────────────────────────────────────────
-# ADMIN — ENVOYER EMAIL (nouvelle page)
+# ADMIN — ENVOYER EMAIL
 # ─────────────────────────────────────────────
 
 @app.route("/admin/envoyer-email", methods=["GET", "POST"])
 @login_required
 def admin_envoyer_email():
-
     membres = Adhesion.query.filter_by(statut="actif").order_by(Adhesion.nom).all()
     villes  = sorted(set(m.ville for m in membres if m.ville))
 
     if request.method == "POST":
-        sujet           = request.form.get("sujet", "").strip()
-        corps           = request.form.get("corps", "").strip()
+        sujet             = request.form.get("sujet", "").strip()
+        corps             = request.form.get("corps", "").strip()
         destinataires_ids = request.form.get("destinataires_ids", "")
-        piece_jointe    = request.files.get("piece_jointe")
+        piece_jointe      = request.files.get("piece_jointe")
 
         if not sujet or not corps:
             flash("Le sujet et le message sont obligatoires.", "danger")
@@ -976,112 +929,72 @@ def admin_envoyer_email():
             flash("Veuillez sélectionner au moins un destinataire.", "danger")
             return redirect(url_for("admin_envoyer_email"))
 
-        destinataires = Adhesion.query.filter(Adhesion.id.in_(ids)).all()
-        destinataires = [a for a in destinataires if a.email]
-
+        destinataires = [a for a in Adhesion.query.filter(Adhesion.id.in_(ids)).all() if a.email]
         if not destinataires:
             flash("Aucun destinataire valide trouvé.", "danger")
             return redirect(url_for("admin_envoyer_email"))
 
-        # Pièce jointe
-        pj_data = None
-        pj_nom  = None
+        pj_data = pj_nom = None
         if piece_jointe and piece_jointe.filename:
             pj_data = piece_jointe.read()
             pj_nom  = piece_jointe.filename
 
-        envoyes = 0
-        erreurs = 0
-
+        envoyes = erreurs = 0
         for a in destinataires:
             try:
-                msg = MailMessage(
-                    subject    = sujet,
-                    recipients = [a.email],
-                    html       = f"""
+                msg = MailMessage(subject=sujet, recipients=[a.email],
+                    html=f"""
                     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
                       <div style="background:#1a7a4a;padding:24px;text-align:center">
-                        <h1 style="color:#fff;margin:0;font-size:1.3rem">
-                          Association des Koungheulois de France
-                        </h1>
-                        <p style="color:rgba(255,255,255,.75);margin:.4rem 0 0;font-size:.85rem">
-                          Solidarité · Entraide · Développement
-                        </p>
+                        <h1 style="color:#fff;margin:0;font-size:1.3rem">Association des Koungheulois de France</h1>
+                        <p style="color:rgba(255,255,255,.75);margin:.4rem 0 0;font-size:.85rem">Solidarité · Entraide · Développement</p>
                       </div>
                       <div style="padding:30px;background:#fff">
-                        <p style="color:#374151;font-size:.95rem;margin-bottom:1rem">
-                          Bonjour <strong>{a.prenom} {a.nom}</strong>,
-                        </p>
-                        <div style="color:#4b5563;line-height:1.8;font-size:.92rem">
-                          {corps.replace(chr(10), '<br>')}
-                        </div>
+                        <p style="color:#374151;font-size:.95rem;margin-bottom:1rem">Bonjour <strong>{a.prenom} {a.nom}</strong>,</p>
+                        <div style="color:#4b5563;line-height:1.8;font-size:.92rem">{corps.replace(chr(10), '<br>')}</div>
                         <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0">
                         <div style="text-align:center">
-                          <a href="https://asso-flask.onrender.com"
-                             style="background:#1a7a4a;color:#fff;padding:10px 24px;
-                                    border-radius:8px;text-decoration:none;
-                                    font-size:.85rem;font-weight:600;display:inline-block">
-                            Visiter notre site
-                          </a>
+                          <a href="https://asso-flask.onrender.com" style="background:#1a7a4a;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:.85rem;font-weight:600;display:inline-block">Visiter notre site</a>
                         </div>
                         <p style="color:#9ca3af;font-size:.75rem;text-align:center;margin-top:20px">
-                          {ASSO['nom']} · RNA {ASSO['rna']}<br>
-                          {ASSO['siege']}<br>
+                          {ASSO['nom']} · RNA {ASSO['rna']}<br>{ASSO['siege']}<br>
                           <a href="mailto:{ASSO['email']}" style="color:#1a7a4a">{ASSO['email']}</a>
                         </p>
                       </div>
-                    </div>
-                    """
-                )
+                    </div>""")
                 if pj_data and pj_nom:
                     msg.attach(pj_nom, "application/octet-stream", pj_data)
                 mail.send(msg)
                 envoyes += 1
-            except Exception as e:
+            except (Exception, SystemExit, BaseException):
                 erreurs += 1
-                print(f"Erreur envoi {a.email}: {e}")
 
         if envoyes > 0:
-            flash(
-                f"Email envoyé à {envoyes} membre(s)."
-                + (f" {erreurs} échec(s)." if erreurs else ""),
-                "success"
-            )
+            flash(f"Email envoyé à {envoyes} membre(s)." + (f" {erreurs} échec(s)." if erreurs else ""), "success")
         else:
             flash("Échec de l'envoi. Vérifiez la configuration email.", "danger")
-
         return redirect(url_for("admin_envoyer_email"))
 
-    return render_template("admin/envoyer_email.html",
-                           asso=ASSO,
-                           membres=membres,
-                           villes=villes,
-                           now=datetime.now())
+    return render_template("admin/envoyer_email.html", asso=ASSO, membres=membres, villes=villes, now=datetime.now())
 
 
 # ─────────────────────────────────────────────
 # ADMIN — COTISATIONS
 # ─────────────────────────────────────────────
 
-MONTANT_ETUDIANT    = 5.0
+MONTANT_ETUDIANT     = 5.0
 MONTANT_NON_ETUDIANT = 10.0
 
 def montant_cotisation(adhesion):
     return MONTANT_ETUDIANT if adhesion.etudiant == "oui" else MONTANT_NON_ETUDIANT
 
 def generer_cotisations_mois(mois, annee):
-    """Génère les cotisations manquantes pour un mois donné."""
     membres = Adhesion.query.filter_by(statut="actif").all()
-    crees = 0
+    crees   = 0
     for m in membres:
-        existant = Cotisation.query.filter_by(
-            adhesion_id=m.id, mois=mois, annee=annee
-        ).first()
-        if not existant:
-            db.session.add(Cotisation(
-                adhesion_id=m.id, mois=mois, annee=annee,
-                montant=montant_cotisation(m), statut="en_attente"
-            ))
+        if not Cotisation.query.filter_by(adhesion_id=m.id, mois=mois, annee=annee).first():
+            db.session.add(Cotisation(adhesion_id=m.id, mois=mois, annee=annee,
+                                      montant=montant_cotisation(m), statut="en_attente"))
             crees += 1
     db.session.commit()
     return crees
@@ -1093,34 +1006,17 @@ def admin_cotisations():
     now   = datetime.now()
     mois  = int(request.args.get("mois",  now.month))
     annee = int(request.args.get("annee", now.year))
-
-    # Générer les cotisations du mois si pas encore fait
     generer_cotisations_mois(mois, annee)
-
-    cotisations = Cotisation.query.filter_by(mois=mois, annee=annee)\
-        .join(Adhesion).order_by(Adhesion.nom).all()
-
-    # Stats du mois
+    cotisations    = Cotisation.query.filter_by(mois=mois, annee=annee).join(Adhesion).order_by(Adhesion.nom).all()
     total_membres  = len(cotisations)
     total_payes    = sum(1 for c in cotisations if c.statut == "paye")
     total_attente  = sum(1 for c in cotisations if c.statut == "en_attente")
     total_retard   = sum(1 for c in cotisations if c.statut == "retard")
     montant_percu  = sum(c.montant for c in cotisations if c.statut == "paye")
     montant_attendu= sum(c.montant for c in cotisations)
-
-    # Navigation mois
-    if mois == 1:
-        mois_prec, annee_prec = 12, annee - 1
-    else:
-        mois_prec, annee_prec = mois - 1, annee
-    if mois == 12:
-        mois_suiv, annee_suiv = 1, annee + 1
-    else:
-        mois_suiv, annee_suiv = mois + 1, annee
-
-    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin",
-               "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-
+    mois_prec, annee_prec = (12, annee-1) if mois == 1  else (mois-1, annee)
+    mois_suiv, annee_suiv = (1,  annee+1) if mois == 12 else (mois+1, annee)
+    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
     return render_template("admin/cotisations.html",
         asso=ASSO, cotisations=cotisations,
         mois=mois, annee=annee, mois_label=mois_fr[mois],
@@ -1131,8 +1027,7 @@ def admin_cotisations():
         montant_percu=montant_percu, montant_attendu=montant_attendu,
         membres_non_inclus=[a for a in Adhesion.query.filter_by(statut="actif").all()
                             if not Cotisation.query.filter_by(adhesion_id=a.id, mois=mois, annee=annee).first()],
-        now=now
-    )
+        now=now)
 
 
 @app.route("/admin/cotisations/<int:id>/marquer/<statut>")
@@ -1152,11 +1047,11 @@ def admin_cotisation_statut(id, statut):
 @app.route("/admin/cotisations/<int:id>/justificatif", methods=["POST"])
 @login_required
 def admin_cotisation_justificatif(id):
-    cot   = Cotisation.query.get_or_404(id)
+    cot     = Cotisation.query.get_or_404(id)
     fichier = request.files.get("justificatif")
     if fichier and fichier.filename:
-        ext  = fichier.filename.rsplit(".", 1)[-1].lower()
-        nom  = f"justif_{cot.id}_{cot.mois}_{cot.annee}.{ext}"
+        ext = fichier.filename.rsplit(".", 1)[-1].lower()
+        nom = f"justif_{cot.id}_{cot.mois}_{cot.annee}.{ext}"
         fichier.save(os.path.join(app.config["UPLOAD_FOLDER"], nom))
         cot.justificatif = nom
         db.session.commit()
@@ -1171,11 +1066,8 @@ def admin_cotisations_marquer_retard():
     mois  = int(request.args.get("mois", now.month))
     annee = int(request.args.get("annee", now.year))
     from datetime import date
-    echeance = date(annee, mois, 10)
-    if date.today() > echeance:
-        nb = Cotisation.query.filter_by(
-            mois=mois, annee=annee, statut="en_attente"
-        ).update({"statut": "retard"})
+    if date.today() > date(annee, mois, 10):
+        nb = Cotisation.query.filter_by(mois=mois, annee=annee, statut="en_attente").update({"statut": "retard"})
         db.session.commit()
         flash(f"{nb} cotisation(s) marquée(s) en retard.", "warning")
     else:
@@ -1184,52 +1076,32 @@ def admin_cotisations_marquer_retard():
 
 
 def _envoyer_rappel(cot, numero, label):
-    """Envoie un email de rappel numéroté à un membre."""
     try:
-        sujets = {
-            1: f"[AKF] Rappel cotisation – {label}",
-            2: f"[AKF] 2ème rappel cotisation – {label}",
-            3: f"[AKF] ⚠️ Alerte retard cotisation – {label}",
-        }
-        intro = {
-            1: "Nous vous rappelons que votre cotisation du mois de",
-            2: "Malgré notre premier rappel, nous constatons que votre cotisation du mois de",
-            3: "⚠️ Votre cotisation du mois de",
-        }
-        fin = {
-            1: "Merci de régulariser votre situation dans les meilleurs délais.",
-            2: "Nous vous invitons à régulariser d'urgence votre situation.",
-            3: "est désormais en retard. Veuillez contacter le bureau immédiatement.",
-        }
-        msg = MailMessage(
-            subject=sujets[numero],
-            recipients=[cot.adhesion.email]
-        )
+        sujets = {1: f"[AKF] Rappel cotisation – {label}",
+                  2: f"[AKF] 2ème rappel cotisation – {label}",
+                  3: f"[AKF] Alerte retard cotisation – {label}"}
+        intro  = {1: "Nous vous rappelons que votre cotisation du mois de",
+                  2: "Malgré notre premier rappel, nous constatons que votre cotisation du mois de",
+                  3: "Votre cotisation du mois de"}
+        fin    = {1: "Merci de régulariser votre situation dans les meilleurs délais.",
+                  2: "Nous vous invitons à régulariser d'urgence votre situation.",
+                  3: "est désormais en retard. Veuillez contacter le bureau immédiatement."}
+        msg = MailMessage(subject=sujets[numero], recipients=[cot.adhesion.email])
         msg.html = f"""
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
           <div style="background:#1a7a4a;padding:20px;text-align:center">
-            <h1 style="color:#fff;margin:0;font-size:1.2rem">
-              Association des Koungheulois de France
-            </h1>
+            <h1 style="color:#fff;margin:0;font-size:1.2rem">Association des Koungheulois de France</h1>
           </div>
           <div style="padding:30px;background:#fff">
             <p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
             <p>{intro[numero]} <strong>{label}</strong> n'a pas encore été enregistrée.</p>
-            <div style="background:#f8faf9;border-left:4px solid #1a7a4a;border-radius:4px;
-                        padding:16px 20px;margin:20px 0">
+            <div style="background:#f8faf9;border-left:4px solid #1a7a4a;border-radius:4px;padding:16px 20px;margin:20px 0">
               <p style="margin:0"><strong>Montant attendu :</strong> {cot.montant:.0f} €</p>
               <p style="margin:6px 0 0"><strong>Mois :</strong> {label}</p>
             </div>
             <p>{fin[numero]}</p>
-            <p><strong>Moyens de paiement acceptés :</strong></p>
-            <ul style="color:#555;line-height:1.8">
-              <li>Virement bancaire</li>
-              <li>Wave / PayPal</li>
-              <li>Espèces lors d'une réunion</li>
-            </ul>
-            <p style="color:#555">Pour toute question :
-              <a href="mailto:{ASSO['email']}" style="color:#1a7a4a">{ASSO['email']}</a>
-            </p>
+            <ul style="color:#555;line-height:1.8"><li>Virement bancaire</li><li>Wave / PayPal</li><li>Espèces lors d'une réunion</li></ul>
+            <p>Pour toute question : <a href="mailto:{ASSO['email']}" style="color:#1a7a4a">{ASSO['email']}</a></p>
           </div>
           <div style="background:#f3f4f6;padding:12px;text-align:center;font-size:.75rem;color:#9ca3af">
             {ASSO['nom']} · RNA {ASSO['rna']} · {ASSO['siege']}
@@ -1237,7 +1109,7 @@ def _envoyer_rappel(cot, numero, label):
         </div>"""
         mail.send(msg)
         return True
-    except Exception as e:
+    except (Exception, SystemExit, BaseException) as e:
         print(f"Erreur rappel {cot.adhesion.email}: {e}")
         return False
 
@@ -1245,68 +1117,44 @@ def _envoyer_rappel(cot, numero, label):
 @app.route("/admin/cotisations/rappel/<int:numero>")
 @login_required
 def admin_cotisations_rappel(numero):
-    """Envoie le rappel N (1=J+10, 2=J+20, 3=J+30) aux non-payés."""
-    now   = datetime.now()
-    mois  = int(request.args.get("mois", now.month))
-    annee = int(request.args.get("annee", now.year))
-    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin",
-               "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-    label = f"{mois_fr[mois]} {annee}"
-
+    now     = datetime.now()
+    mois    = int(request.args.get("mois", now.month))
+    annee   = int(request.args.get("annee", now.year))
+    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    label   = f"{mois_fr[mois]} {annee}"
     champ_rappel = {1: "rappel1_envoye", 2: "rappel2_envoye", 3: "alerte_envoye"}
     filtre       = {1: ["en_attente"], 2: ["en_attente","retard"], 3: ["retard"]}
-
-    cotisations = Cotisation.query.filter(
-        Cotisation.mois == mois,
-        Cotisation.annee == annee,
-        Cotisation.statut.in_(filtre[numero])
-    ).all()
-
+    cotisations  = Cotisation.query.filter(Cotisation.mois==mois, Cotisation.annee==annee,
+                                           Cotisation.statut.in_(filtre[numero])).all()
     envoyes = ignores = 0
     for cot in cotisations:
-        if not cot.adhesion.email:
-            continue
-        # Ne pas renvoyer si déjà envoyé
-        if getattr(cot, champ_rappel[numero]):
-            ignores += 1
-            continue
+        if not cot.adhesion.email: continue
+        if getattr(cot, champ_rappel[numero]): ignores += 1; continue
         if _envoyer_rappel(cot, numero, label):
             setattr(cot, champ_rappel[numero], True)
-            if numero == 3:
-                cot.statut = "retard"
+            if numero == 3: cot.statut = "retard"
             envoyes += 1
-
     db.session.commit()
     noms = {1: "1er rappel", 2: "2ème rappel", 3: "alerte retard"}
-    flash(f"✅ {noms[numero]} : {envoyes} email(s) envoyé(s). {ignores} déjà envoyé(s).", "success")
+    flash(f"{noms[numero]} : {envoyes} email(s) envoyé(s). {ignores} déjà envoyé(s).", "success")
     return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
 
 
 @app.route("/admin/cotisations/relancer")
 @login_required
 def admin_cotisations_relancer():
-    """Envoie un email de rappel à tous les membres en retard ou en attente."""
-    mois  = int(request.args.get("mois",  datetime.now().month))
-    annee = int(request.args.get("annee", datetime.now().year))
-    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin",
-               "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-    label = f"{mois_fr[mois]} {annee}"
-
-    en_attente = Cotisation.query.filter(
-        Cotisation.mois == mois, Cotisation.annee == annee,
-        Cotisation.statut.in_(["en_attente", "retard"])
-    ).all()
-
+    mois    = int(request.args.get("mois",  datetime.now().month))
+    annee   = int(request.args.get("annee", datetime.now().year))
+    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    label   = f"{mois_fr[mois]} {annee}"
+    en_attente = Cotisation.query.filter(Cotisation.mois==mois, Cotisation.annee==annee,
+                                          Cotisation.statut.in_(["en_attente","retard"])).all()
     envoyes = 0
     for cot in en_attente:
-        if not cot.adhesion.email:
-            continue
+        if not cot.adhesion.email: continue
         try:
-            msg = MailMessage(
-                subject=f"[AKF] Rappel cotisation – {label}",
-                recipients=[cot.adhesion.email]
-            )
             statut_txt = "en retard" if cot.statut == "retard" else "à régler"
+            msg = MailMessage(subject=f"[AKF] Rappel cotisation – {label}", recipients=[cot.adhesion.email])
             msg.html = f"""
             <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
               <div style="background:#1a7a4a;padding:20px;text-align:center">
@@ -1314,34 +1162,17 @@ def admin_cotisations_relancer():
               </div>
               <div style="padding:30px;background:#fff">
                 <p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
-                <p>Nous vous rappelons que votre cotisation du mois de <strong>{label}</strong>
-                est <strong style="color:{'#dc2626' if cot.statut == 'retard' else '#d97706'}">{statut_txt}</strong>.</p>
+                <p>Votre cotisation de <strong>{label}</strong> est <strong>{statut_txt}</strong>.</p>
                 <div style="background:#f8faf9;border-radius:8px;padding:20px;margin:20px 0;border-left:4px solid #1a7a4a">
                   <p style="margin:0"><strong>Montant :</strong> {cot.montant:.0f} € / mois</p>
-                  <p style="margin:8px 0 0"><strong>Échéance :</strong> le 5 {label}</p>
                 </div>
-                <p><strong>Comment payer :</strong></p>
-                <ul style="color:#555">
-                  <li>Virement bancaire (coordonnées disponibles auprès du trésorier)</li>
-                  <li>Wave / PayPal</li>
-                  <li>Espèces lors d'une réunion</li>
-                </ul>
-                <p style="color:#555">Pour toute question, contactez le bureau à
-                  <a href="mailto:{ASSO['email']}" style="color:#1a7a4a">{ASSO['email']}</a>
-                </p>
-                <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                <p style="color:#999;font-size:.8rem;text-align:center">
-                  {ASSO['nom']} · RNA {ASSO['rna']}
-                </p>
+                <p>Pour toute question : <a href="mailto:{ASSO['email']}" style="color:#1a7a4a">{ASSO['email']}</a></p>
               </div>
-            </div>
-            """
+            </div>"""
             mail.send(msg)
             envoyes += 1
-        except Exception as e:
-            print(f"Erreur relance {cot.adhesion.email} : {e}")
-
-    flash(f"✅ {envoyes} email(s) de rappel envoyé(s) pour {label}.", "success")
+        except (Exception, SystemExit, BaseException): pass
+    flash(f"{envoyes} email(s) de rappel envoyé(s) pour {label}.", "success")
     return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
 
 
@@ -1351,14 +1182,9 @@ def admin_cotisation_ajouter(mois, annee):
     adhesion_id = request.form.get("adhesion_id")
     montant     = float(request.form.get("montant", 10))
     if adhesion_id:
-        existant = Cotisation.query.filter_by(
-            adhesion_id=adhesion_id, mois=mois, annee=annee
-        ).first()
-        if not existant:
-            db.session.add(Cotisation(
-                adhesion_id=int(adhesion_id), mois=mois, annee=annee,
-                montant=montant, statut="en_attente"
-            ))
+        if not Cotisation.query.filter_by(adhesion_id=adhesion_id, mois=mois, annee=annee).first():
+            db.session.add(Cotisation(adhesion_id=int(adhesion_id), mois=mois, annee=annee,
+                                      montant=montant, statut="en_attente"))
             db.session.commit()
             flash("Membre ajouté aux cotisations du mois.", "success")
         else:
@@ -1381,52 +1207,35 @@ def admin_cotisations_action_groupe(mois, annee):
                     cot.date_paiement = datetime.now()
                     cot.mode_paiement = "Action groupée"
         db.session.commit()
-        flash(f"✅ {len(ids)} cotisation(s) mise(s) à jour en '{statut}'.", "success")
+        flash(f"{len(ids)} cotisation(s) mise(s) à jour en '{statut}'.", "success")
     return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
 
 
 @app.route("/admin/cotisations/email-cible/<int:mois>/<int:annee>", methods=["POST"])
 @login_required
 def admin_cotisations_email_cible(mois, annee):
-    cible  = request.form.get("cible", "tous")
-    sujet  = request.form.get("sujet", "").strip()
-    corps  = request.form.get("corps", "").strip()
-    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin",
-               "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-    label = f"{mois_fr[mois]} {annee}"
-
-    query = Cotisation.query.filter_by(mois=mois, annee=annee)
-    if cible == "en_attente":
-        query = query.filter_by(statut="en_attente")
-    elif cible == "retard":
-        query = query.filter_by(statut="retard")
-    elif cible == "non_payes":
-        query = query.filter(Cotisation.statut.in_(["en_attente", "retard"]))
-
-    cotisations = query.all()
+    cible   = request.form.get("cible", "tous")
+    sujet   = request.form.get("sujet", "").strip()
+    corps   = request.form.get("corps", "").strip()
+    mois_fr = ["","Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    label   = f"{mois_fr[mois]} {annee}"
+    query   = Cotisation.query.filter_by(mois=mois, annee=annee)
+    if cible == "en_attente":    query = query.filter_by(statut="en_attente")
+    elif cible == "retard":      query = query.filter_by(statut="retard")
+    elif cible == "non_payes":   query = query.filter(Cotisation.statut.in_(["en_attente","retard"]))
     envoyes = 0
-    for cot in cotisations:
+    for cot in query.all():
         if not cot.adhesion.email: continue
         try:
             msg = MailMessage(subject=sujet, recipients=[cot.adhesion.email])
-            msg.html = f"""
-            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-              <div style="background:#1a7a4a;padding:20px;text-align:center">
-                <h1 style="color:#fff;margin:0;font-size:1.3rem">AKF – Cotisations {label}</h1>
-              </div>
-              <div style="padding:30px">
-                <p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
-                <div style="line-height:1.7">{corps.replace(chr(10), '<br>')}</div>
-                <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                <p style="color:#999;font-size:.8rem;text-align:center">{ASSO['nom']} · RNA {ASSO['rna']}</p>
-              </div>
-            </div>"""
+            msg.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:#1a7a4a;padding:20px;text-align:center"><h1 style="color:#fff;margin:0;font-size:1.3rem">AKF – Cotisations {label}</h1></div>
+              <div style="padding:30px"><p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
+              <div style="line-height:1.7">{corps.replace(chr(10), '<br>')}</div></div></div>"""
             mail.send(msg)
             envoyes += 1
-        except Exception as e:
-            print(f"Erreur email {cot.adhesion.email}: {e}")
-
-    flash(f"✅ {envoyes} email(s) envoyé(s).", "success")
+        except (Exception, SystemExit, BaseException): pass
+    flash(f"{envoyes} email(s) envoyé(s).", "success")
     return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
 
 
@@ -1436,36 +1245,23 @@ def admin_cotisations_email_selection(mois, annee):
     ids_str = request.form.get("ids", "")
     sujet   = request.form.get("sujet", "").strip()
     corps   = request.form.get("corps", "").strip()
-
     if not ids_str:
         flash("Aucun membre sélectionné.", "danger")
         return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
-
-    ids = [int(i) for i in ids_str.split(",") if i.isdigit()]
     envoyes = 0
-    for cot_id in ids:
+    for cot_id in [int(i) for i in ids_str.split(",") if i.isdigit()]:
         cot = Cotisation.query.get(cot_id)
         if not cot or not cot.adhesion.email: continue
         try:
             msg = MailMessage(subject=sujet, recipients=[cot.adhesion.email])
-            msg.html = f"""
-            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-              <div style="background:#1a7a4a;padding:20px;text-align:center">
-                <h1 style="color:#fff;margin:0;font-size:1.3rem">Association des Koungheulois de France</h1>
-              </div>
-              <div style="padding:30px">
-                <p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
-                <div style="line-height:1.7">{corps.replace(chr(10), '<br>')}</div>
-                <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
-                <p style="color:#999;font-size:.8rem;text-align:center">{ASSO['nom']} · RNA {ASSO['rna']}</p>
-              </div>
-            </div>"""
+            msg.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+              <div style="background:#1a7a4a;padding:20px;text-align:center"><h1 style="color:#fff;margin:0;font-size:1.3rem">Association des Koungheulois de France</h1></div>
+              <div style="padding:30px"><p>Bonjour <strong>{cot.adhesion.prenom} {cot.adhesion.nom}</strong>,</p>
+              <div style="line-height:1.7">{corps.replace(chr(10), '<br>')}</div></div></div>"""
             mail.send(msg)
             envoyes += 1
-        except Exception as e:
-            print(f"Erreur email {cot.adhesion.email}: {e}")
-
-    flash(f"✅ {envoyes} email(s) envoyé(s) aux membres sélectionnés.", "success")
+        except (Exception, SystemExit, BaseException): pass
+    flash(f"{envoyes} email(s) envoyé(s) aux membres sélectionnés.", "success")
     return redirect(url_for("admin_cotisations", mois=mois, annee=annee))
 
 
@@ -1478,37 +1274,37 @@ def init_db():
         db.create_all()
 
         # ── Migration colonnes cotisation ──────────
-        from sqlalchemy import text, inspect
-        inspector = inspect(db.engine)
-        colonnes_existantes = [c['name'] for c in inspector.get_columns('cotisation')]
-
-        migrations = [
-            ("justificatif",   "ALTER TABLE cotisation ADD COLUMN justificatif VARCHAR(200)"),
-            ("rappel1_envoye", "ALTER TABLE cotisation ADD COLUMN rappel1_envoye BOOLEAN DEFAULT false"),
-            ("rappel2_envoye", "ALTER TABLE cotisation ADD COLUMN rappel2_envoye BOOLEAN DEFAULT false"),
-            ("alerte_envoye",  "ALTER TABLE cotisation ADD COLUMN alerte_envoye BOOLEAN DEFAULT false"),
-        ]
-
-        with db.engine.connect() as conn:
-            for colonne, sql in migrations:
-                if colonne not in colonnes_existantes:
-                    try:
-                        conn.execute(text(sql))
-                        conn.commit()
-                        print(f"✅ Colonne '{colonne}' ajoutée")
-                    except Exception as e:
-                        print(f"⚠️ {colonne}: {e}")
+        try:
+            from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            if inspector.has_table('cotisation'):
+                colonnes = [c['name'] for c in inspector.get_columns('cotisation')]
+                migrations = [
+                    ("justificatif",   "ALTER TABLE cotisation ADD COLUMN justificatif VARCHAR(200)"),
+                    ("rappel1_envoye", "ALTER TABLE cotisation ADD COLUMN rappel1_envoye BOOLEAN DEFAULT false"),
+                    ("rappel2_envoye", "ALTER TABLE cotisation ADD COLUMN rappel2_envoye BOOLEAN DEFAULT false"),
+                    ("alerte_envoye",  "ALTER TABLE cotisation ADD COLUMN alerte_envoye BOOLEAN DEFAULT false"),
+                ]
+                with db.engine.connect() as conn:
+                    for col, sql in migrations:
+                        if col not in colonnes:
+                            try:
+                                conn.execute(text(sql))
+                                conn.commit()
+                                print(f"✅ Colonne '{col}' ajoutée")
+                            except Exception as e:
+                                print(f"⚠️ {col}: {e}")
+        except Exception as e:
+            print(f"⚠️ Migration ignorée : {e}")
         # ── Fin migration ──────────────────────────
 
-        # Admin par défaut
         if not AdminUser.query.filter_by(username="admin").first():
             a = AdminUser(username="admin")
             a.set_password("akf2026")
             db.session.add(a)
             db.session.commit()
-            print("✅ Admin créé : admin / akf2026  ← CHANGER CE MOT DE PASSE")
+            print("✅ Admin créé : admin / akf2026")
 
-        # Bureau de départ (si vide)
         if MembreBureau.query.count() == 0:
             bureau = [
                 ("Mamadou Moustapha Mané", "Président",          "mane.jpg",   0),
@@ -1523,58 +1319,33 @@ def init_db():
             for nom, poste, photo, ordre in bureau:
                 db.session.add(MembreBureau(nom=nom, poste=poste, photo=photo, ordre=ordre))
             db.session.commit()
-            print("✅ Bureau initialisé")
 
-        # Projets de départ (si vide)
         if Projet.query.count() == 0:
-            projets = [
-                ("Soutien à l'éducation à Koungheul", "ÉDUCATION",
-                 "Accompagner les élèves de Koungheul pour une rentrée scolaire digne.",
-                 "soutien-education-koungheul"),
-                ("Aide sanitaire et médicale", "SANTÉ",
-                 "Financement de consultations médicales et d'équipements pour les populations vulnérables.",
-                 "aide-sanitaire-medicale"),
-                ("Développement économique local", "ÉCONOMIQUE",
-                 "Soutenir les initiatives locales, l'artisanat et l'agriculture.",
-                 "developpement-economique-local"),
-                ("Solidarité et cohésion sociale", "SOCIALE",
-                 "Renforcer les liens entre la diaspora et Koungheul.",
-                 "solidarite-cohesion-sociale"),
-            ]
-            for titre, cat, desc, slug in projets:
+            for titre, cat, desc, slug in [
+                ("Soutien à l'éducation à Koungheul", "ÉDUCATION", "Accompagner les élèves de Koungheul pour une rentrée scolaire digne.", "soutien-education-koungheul"),
+                ("Aide sanitaire et médicale", "SANTÉ", "Financement de consultations médicales.", "aide-sanitaire-medicale"),
+                ("Développement économique local", "ÉCONOMIQUE", "Soutenir les initiatives locales, l'artisanat et l'agriculture.", "developpement-economique-local"),
+                ("Solidarité et cohésion sociale", "SOCIALE", "Renforcer les liens entre la diaspora et Koungheul.", "solidarite-cohesion-sociale"),
+            ]:
                 db.session.add(Projet(titre=titre, categorie=cat, description=desc, slug=slug))
             db.session.commit()
-            print("✅ Projets initialisés")
 
-        # Actualités de départ (si vide)
         if Actualite.query.count() == 0:
-            actus = [
-                ("Création officielle de l'association", "Événements",
-                 "L'AKF a été officiellement créée lors d'une réunion fondatrice à Limoges.",
-                 "creation-officielle-association"),
-                ("Publication au Journal Officiel", "Administratif",
-                 "Déclaration publiée au Journal Officiel (annonce n°2578 du 28 avril 2026).",
-                 "publication-journal-officiel"),
-                ("Lancement de nos premiers projets", "Projets",
-                 "Le bureau se mobilise pour préparer les premiers projets concrets.",
-                 "lancement-premiers-projets"),
-            ]
-            for titre, cat, extrait, slug in actus:
+            for titre, cat, extrait, slug in [
+                ("Création officielle de l'association", "Événements", "L'AKF a été officiellement créée lors d'une réunion fondatrice à Limoges.", "creation-officielle-association"),
+                ("Publication au Journal Officiel", "Administratif", "Déclaration publiée au Journal Officiel (annonce n°2578 du 28 avril 2026).", "publication-journal-officiel"),
+                ("Lancement de nos premiers projets", "Projets", "Le bureau se mobilise pour préparer les premiers projets concrets.", "lancement-premiers-projets"),
+            ]:
                 db.session.add(Actualite(titre=titre, categorie=cat, extrait=extrait, slug=slug))
             db.session.commit()
-            print("✅ Actualités initialisées")
 
-        # Import adhérents depuis Excel (si base vide)
         if Adhesion.query.count() == 0:
             try:
-                import pandas as pd, unicodedata, re
-
+                import pandas as pd
                 FICHIER_EXCEL = "Formulaire_sans_titdatare__réponses___1_.xlsx"
-
                 if os.path.exists(FICHIER_EXCEL):
                     df = pd.read_excel(FICHIER_EXCEL)
                     importes = 0
-
                     for _, row in df.iterrows():
                         nom_complet = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ""
                         ville       = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ""
@@ -1582,49 +1353,28 @@ def init_db():
                         email       = str(row.iloc[4]).strip() if pd.notna(row.iloc[4]) else ""
                         sexe        = str(row.iloc[6]).strip() if pd.notna(row.iloc[6]) else ""
                         motivation  = str(row.iloc[8]).strip() if pd.notna(row.iloc[8]) else ""
-
-                        if not email or email == "nan":
-                            continue
-
-                        if Adhesion.query.filter_by(email=email).first():
-                            continue
-
-                        parts = nom_complet.split()
-                        if len(parts) >= 2:
-                            prenom = parts[0]
-                            nom    = " ".join(parts[1:])
-                        else:
-                            prenom = nom_complet
-                            nom    = ""
-
+                        if not email or email == "nan": continue
+                        if Adhesion.query.filter_by(email=email).first(): continue
+                        parts  = nom_complet.split()
+                        prenom = parts[0] if parts else nom_complet
+                        nom    = " ".join(parts[1:]) if len(parts) >= 2 else ""
                         try:
                             if 'E' in telephone.upper():
                                 telephone = str(int(float(telephone)))
                         except: pass
-
                         civilite = "Mme" if "femme" in sexe.lower() or "féminin" in sexe.lower() else "M."
-
                         db.session.add(Adhesion(
-                            civilite=civilite,
-                            prenom=prenom or nom_complet,
-                            nom=nom,
-                            email=email,
-                            telephone=telephone[:50],
-                            ville=ville,
-                            pays="France",
+                            civilite=civilite, prenom=prenom or nom_complet, nom=nom,
+                            email=email, telephone=telephone[:50], ville=ville, pays="France",
                             type_adhesion="membre_actif",
                             motivation=motivation[:2000] if motivation and motivation != "nan" else "",
                             statut="actif",
                         ))
                         importes += 1
-
                     db.session.commit()
-                    print(f"✅ {importes} adhérents importés depuis Excel")
-                else:
-                    print("⚠️  Fichier Excel non trouvé — import adhérents ignoré")
-
+                    print(f"✅ {importes} adhérents importés")
             except Exception as e:
-                print(f"⚠️  Erreur import adhérents : {e}")
+                print(f"⚠️ Import Excel : {e}")
 
 
 if __name__ == "__main__":
@@ -1641,9 +1391,8 @@ _db_initialized = False
 def ensure_db():
     global _db_initialized
     if not _db_initialized:
+        _db_initialized = True
         try:
             init_db()
         except Exception as e:
-            print(f"[ensure_db] ERREUR init_db: {e}", flush=True)
-            import traceback; traceback.print_exc()
-        _db_initialized = True
+            print(f"[ensure_db] ERREUR : {e}", flush=True)
