@@ -1641,5 +1641,9 @@ _db_initialized = False
 def ensure_db():
     global _db_initialized
     if not _db_initialized:
-        init_db()
+        try:
+            init_db()
+        except Exception as e:
+            print(f"[ensure_db] ERREUR init_db: {e}", flush=True)
+            import traceback; traceback.print_exc()
         _db_initialized = True
